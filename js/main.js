@@ -19,9 +19,9 @@ import {calculateViscosity}     from './shaders/PBF/vs-calculateViscosity.js'
 
 let canvas = document.querySelector("#canvas3D");
 
-const particlesTextureSize = 512;
-const neighborsTextureSize = 512;
-const bucketSize = 64;
+const particlesTextureSize = 1024;
+const neighborsTextureSize = 2048;
+const bucketSize = 128;
 const FOV = 30;
 
 let textureProgram, predictPositionsProgram, integrateVelocityProgram, renderParticlesProgram, calculateConstrainsProgram, calculateDisplacementsProgram, calculateViscosityProgram;
@@ -33,8 +33,8 @@ let camera = new Camera(canvas);
 let cameraDistance = 3.5;
 
 let updateSimulation = true;
-let deltaTime = 0.015;
-let constrainsIterations = 3;
+let deltaTime = 0.01;
+let constrainsIterations = 8;
 let restDensity = 1000;
 let particleMass = restDensity;
 let searchRadius = 1.8;
@@ -62,15 +62,26 @@ for(let i = 0; i < bucketSize; i ++) {
             let y = j - bucketSize * 0.5;
             let z = k - bucketSize * 0.5;
 
-            if(x*x + y*y + z*z < radius * radius && k < bucketSize * 0.4) {
+            if(x*x + y*y + z*z < radius * radius && j < bucketSize * 0.3) {
                 totalParticles ++;
                 particlesPosition.push(i, j, k, 1);
                 particlesVelocity.push(0, 0, 0, 0); //Velocity is zero for all the particles.
             }
+
+            y = j - bucketSize * 0.8;
+
+            if(x*x + y*y + z*z < 15 * 15) {
+                totalParticles ++;
+                particlesPosition.push(i, j, k, 1);
+                particlesVelocity.push(0, -30, 0, 0); //Velocity is zero for all the particles.
+            }
+
+
         }
     }
 }
 
+console.log("total particles used: " + totalParticles);
 
 //This fills the rest of buffer to generate the texture
 for(let i = totalParticles; i < particlesTextureSize * particlesTextureSize; i ++) {
@@ -297,11 +308,8 @@ let render = () => {
     gl.uniformMatrix4fv(renderParticlesProgram.perspectiveMatrix, false, camera.perspectiveMatrix);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     gl.enable(gl.DEPTH_TEST);
-    gl.enable(gl.BLEND);
-    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
     gl.drawArrays(gl.POINTS, 0, totalParticles);
     gl.disable(gl.DEPTH_TEST);
-    gl.disable(gl.BLEND);
 
 
     //Check textures
@@ -310,10 +318,8 @@ let render = () => {
     gl.useProgram(textureProgram);
     webGL2.bindTexture(textureProgram.texture, neighborhoodTexture, 0);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-
-    updateSimulation = true;
 }
 
-document.body.addEventListener("keydown", (e) => {updateSimulation = true;});
+document.body.addEventListener("keydown", (e) => {updateSimulation = !updateSimulation;});
 
 render();

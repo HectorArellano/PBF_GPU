@@ -71,7 +71,7 @@ void main() {
     for(int i = 0; i < 27; i ++) {
 
         vec3 neighborsVoxel = gridPosition + offsets[i];
-        vec2 voxelsIndex =  (neighborsVoxel.xy + uBucketData.y * vec2(mod(neighborsVoxel.z, uBucketData.z), floor(neighborsVoxel.z / uBucketData.z)) + vec2(0.5)) / uBucketData.x;
+        vec2 voxelsIndex =  (neighborsVoxel.zy + uBucketData.y * vec2(mod(neighborsVoxel.x, uBucketData.z), floor(neighborsVoxel.x / uBucketData.z)) + vec2(0.5)) / uBucketData.x;
         //float gridIndex = dot(neighborsVoxel, vec3(1., uBucketData.y, uBucketData.y * uBucketData.y));
         //vec2 voxelsIndex = (vec2(mod(gridIndex, uBucketData.x), floor(gridIndex / uBucketData.x)) + vec2(0.5)) / uBucketData.x;
         vec4 neighbors = texture(uNeighbors, voxelsIndex);

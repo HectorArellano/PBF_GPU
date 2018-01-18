@@ -27,7 +27,7 @@ const vsNeighbors = `#version 300 es
         //vec2 voxelPosition = 2. * ((vec2(mod(gridIndex, uBucketData.x), floor(gridIndex / uBucketData.x)) + vec2(0.5)) / uBucketData.x) - vec2(1.);
 
         //This voxel position is relative to the mayor (depth) axis, good for visualization.
-        vec2 voxelPosition =  2. * (gridPosition.xy + uBucketData.y * vec2(mod(gridPosition.z, uBucketData.z), floor(gridPosition.z / uBucketData.z)) + vec2(0.5)) / uBucketData.x - vec2(1.);
+        vec2 voxelPosition =  2. * (gridPosition.zy + uBucketData.y * vec2(mod(gridPosition.x, uBucketData.z), floor(gridPosition.x / uBucketData.z)) + vec2(0.5)) / uBucketData.x - vec2(1.);
 
         if(gridPosition.y < 0.) voxelPosition = vec2(1e10);
         gl_Position = vec4(voxelPosition, float(gl_VertexID) / uTotalParticles, 1.0);

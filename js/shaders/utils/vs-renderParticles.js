@@ -19,9 +19,9 @@ void main() {
 
     if(position.y < 0.) position = vec3(0.);
 
-    colorData.rgb = abs(texture(uTexturePosition, index).rgb) / 64.;
+    colorData.rgb = texture(uTexturePosition, index).rgb/ 128.;
 
-    colorData.a = .4;
+    colorData.a = .2;
 
     gl_Position = uPMatrix * uCameraMatrix * vec4(position, 1.);
 
