@@ -22,38 +22,67 @@ let canvas = document.querySelector("#canvas3D");
 const particlesTextureSize = 512;
 const neighborsTextureSize = 512;
 const bucketSize = 64;
-const deltaTime = 0.01;
 const FOV = 30;
-let cameraDistance = 3.5;
 
-let textureProgram, predictPositionsProgram, integrateVelocityProgram, totalParticles, renderParticlesProgram, calculateConstrainsProgram, calculateDisplacementsProgram, calculateViscosityProgram;
+let textureProgram, predictPositionsProgram, integrateVelocityProgram, renderParticlesProgram, calculateConstrainsProgram, calculateDisplacementsProgram, calculateViscosityProgram;
 let positionTexture, positionHelper1Texture, positionHelper2Texture, velocityTexture, velocityHelper1Texture;  //Positions and velocities textures for the particles
 let positionBuffer, velocityBuffer, positionHelper1Buffer, positionHelper2Buffer, velocityHelper1Buffer;
-let neighborhoodTexture, neighborhoodBuffer;
-
-let lambdaTexture, lambdaBuffer;
+let neighborhoodTexture, neighborhoodBuffer, lambdaTexture, lambdaBuffer;
 
 let camera = new Camera(canvas);
+let cameraDistance = 3.5;
 
 let updateSimulation = true;
+let deltaTime = 0.015;
 let constrainsIterations = 3;
 let restDensity = 1000;
 let particleMass = restDensity;
 let searchRadius = 1.8;
-let relaxParameter = .1;  //<<<----- this requires checking
+let relaxParameter = .05;  //<<<------------------------------------------- this is very sensible
 let wConstant = (315 / (64 * Math.PI * Math.pow(searchRadius, 9)));
 let densityConstant = wConstant * particleMass;
 let gradWconstant = -45 / (Math.PI * Math.pow(searchRadius, 6));
-
-let tensileConstant = 10;
+let tensileConstant = 40;
 let tensilePower = 4;
 let tensileDistance = 0.3 * searchRadius;
+let viscosityConstant = .1 * 45 / (Math.PI * Math.pow(searchRadius, 6) * restDensity);
 
-let viscosityConstant = 10.9 * 45 / (Math.PI * Math.pow(searchRadius, 6) * restDensity);
+let totalParticles = 0;
+let radius = bucketSize * 0.48;
+let particlesPosition = [];
+let particlesVelocity = [];
+
+//Generate the position and velocity
+for(let i = 0; i < bucketSize; i ++) {
+    for(let j = 0; j < bucketSize; j ++) {
+        for(let k = 0; k < bucketSize; k ++) {
+
+            //Condition for the particle position and existence
+            let x = i - bucketSize * 0.5;
+            let y = j - bucketSize * 0.5;
+            let z = k - bucketSize * 0.5;
+
+            if(x*x + y*y + z*z < radius * radius && k < bucketSize * 0.4) {
+                totalParticles ++;
+                particlesPosition.push(i, j, k, 1);
+                particlesVelocity.push(0, 0, 0, 0); //Velocity is zero for all the particles.
+            }
+        }
+    }
+}
+
+
+//This fills the rest of buffer to generate the texture
+for(let i = totalParticles; i < particlesTextureSize * particlesTextureSize; i ++) {
+    particlesPosition.push(0, 0, 0, 0);
+    particlesVelocity.push(0, 0, 0, 0);
+}
+
 
 //=======================================================================================================
-// Context and shaders generation
+// Context, shaders (programs), textures and buffers generation
 //=======================================================================================================
+
 
 webGL2.setContext(canvas);
 
@@ -119,44 +148,6 @@ calculateViscosityProgram.restDensity                   = gl.getUniformLocation(
 calculateViscosityProgram.searchRadius                  = gl.getUniformLocation(calculateViscosityProgram, "uSearchRadius");
 calculateViscosityProgram.kernelConstant                = gl.getUniformLocation(calculateViscosityProgram, "uKernelConstant");
 
-
-
-//=======================================================================================================
-// Particles Generation (Textures, buffers...)
-//=======================================================================================================
-
-totalParticles = 0;
-let boxSize = bucketSize * 0.46;
-let radius = bucketSize * 0.48;
-let particlesPosition = [];
-let particlesVelocity = [];
-
-//Generate the position and velocity
-for(let i = 0; i < bucketSize; i ++) {
-    for(let j = 0; j < bucketSize; j ++) {
-        for(let k = 0; k < bucketSize; k ++) {
-
-            //Condition for the particle position and existence
-            let x = i - bucketSize * 0.5;
-            let y = j - bucketSize * 0.5;
-            let z = k - bucketSize * 0.5;
-
-            if(x*x + y*y + z*z < radius * radius && k < bucketSize * 0.5) {
-                totalParticles ++;
-                particlesPosition.push(i, j, k, 1);
-                particlesVelocity.push(0, 0, 0, 0); //Velocity is zero for all the particles.
-            }
-        }
-    }
-}
-
-console.log("the total particles are: " + totalParticles);
-
-//This fills the rest of buffer to generate the texture
-for(let i = totalParticles; i < particlesTextureSize * particlesTextureSize; i ++) {
-    particlesPosition.push(0, 0, 0, 0);
-    particlesVelocity.push(0, 0, 0, 0);
-}
 
 //Required textures for simulations
 positionTexture         = webGL2.createTexture2D(particlesTextureSize, particlesTextureSize, gl.RGBA32F, gl.RGBA, gl.NEAREST, gl.NEAREST, gl.FLOAT, new Float32Array(particlesPosition));
@@ -320,7 +311,7 @@ let render = () => {
     webGL2.bindTexture(textureProgram.texture, neighborhoodTexture, 0);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
-    updateSimulation = false;
+    updateSimulation = true;
 }
 
 document.body.addEventListener("keydown", (e) => {updateSimulation = true;});
