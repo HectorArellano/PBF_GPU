@@ -1,39 +1,27 @@
-const calculateConstrains = `#version 300 es
+const calculateViscosity = `#version 300 es
 
 precision highp float;
 precision highp sampler2D;
 
 uniform sampler2D uTexturePosition;
 uniform sampler2D uNeighbors;
-uniform vec3 uBucketData;
+uniform sampler2D uTextureVelocity;
+uniform vec3  uBucketData;
 uniform float uSearchRadius;
-uniform float uKernelConstant;
-uniform float uRelaxParameter;
-uniform float uGradientKernelConstant;
 uniform float uRestDensity;
+uniform float uKernelConstant;
 
-out vec4 colorData;
 vec3 offsets[27];
 float texturePositionSize;
 float h2;
 
-void addToSum(in vec3 particlePosition, in float neighborIndex, inout float density, inout float sum_k_grad_Ci, inout vec3 grad_pi_Ci) {
+out vec4 colorData;
 
-    vec3 distance = particlePosition - texture(uTexturePosition, vec2(mod(neighborIndex, texturePositionSize) + 0.5, floor(neighborIndex / texturePositionSize) + 0.5) / texturePositionSize).rgb;
+void addToSum(in vec3 particlePosition, in float neighborIndex, in vec3 particleVelocity, inout vec3 deltaVelocity) {
+    vec2 index = vec2(mod(neighborIndex, texturePositionSize) + 0.5, floor(neighborIndex / texturePositionSize) + 0.5) / texturePositionSize;
+    vec3 distance = particlePosition - texture(uTexturePosition, index).rgb;
     float r = length(distance);
-
-    if(r < uSearchRadius) {
-
-        float partial = h2 - dot(distance, distance);
-        density += uKernelConstant * partial * partial * partial;
-
-        if(r > 0.) {
-            partial = uSearchRadius - r;
-            vec3 grad_pk_Ci = uGradientKernelConstant * partial * partial * normalize(distance) / uRestDensity;
-            sum_k_grad_Ci += dot(grad_pk_Ci, grad_pk_Ci);
-            grad_pi_Ci += grad_pk_Ci;
-        }
-    }
+    if(r > 0. && r < uSearchRadius) deltaVelocity += (particleVelocity - texture(uTextureVelocity, index).rgb) * (uSearchRadius - r);
 }
 
 void main() {
@@ -75,15 +63,10 @@ void main() {
     gl_Position = vec4(2. * index - vec2(1.), 0., 1.);
     gl_PointSize = 1.;
 
-    //Particle position goes from [0 - 128);
     vec3 particlePosition = texture(uTexturePosition, index).rgb;
+    vec3 particleVelocity = texture(uTextureVelocity, index).rgb;
     vec3 gridPosition = floor(particlePosition);
-
-    float density = 0.;
-    float densityConstrain = 0.;
-    float lambdaPressure = 0.;
-    float sum_k_grad_Ci = 0.;
-    vec3 grad_pi_Ci = vec3(0.);
+    vec3 deltaVelocity = vec3(0.);
 
     for(int i = 0; i < 27; i ++) {
 
@@ -93,20 +76,17 @@ void main() {
         //vec2 voxelsIndex = (vec2(mod(gridIndex, uBucketData.x), floor(gridIndex / uBucketData.x)) + vec2(0.5)) / uBucketData.x;
         vec4 neighbors = texture(uNeighbors, voxelsIndex);
 
-        if(neighbors.r > 0.) addToSum(particlePosition, neighbors.r, density, sum_k_grad_Ci, grad_pi_Ci);
-        if(neighbors.g > 0.) addToSum(particlePosition, neighbors.g, density, sum_k_grad_Ci, grad_pi_Ci);
-        if(neighbors.b > 0.) addToSum(particlePosition, neighbors.b, density, sum_k_grad_Ci, grad_pi_Ci);
-        if(neighbors.a > 0.) addToSum(particlePosition, neighbors.a, density, sum_k_grad_Ci, grad_pi_Ci);
+        if(neighbors.r > 0.) addToSum(particlePosition, neighbors.r, particleVelocity, deltaVelocity);
+        if(neighbors.g > 0.) addToSum(particlePosition, neighbors.g, particleVelocity, deltaVelocity);
+        if(neighbors.b > 0.) addToSum(particlePosition, neighbors.b, particleVelocity, deltaVelocity);
+        if(neighbors.a > 0.) addToSum(particlePosition, neighbors.a, particleVelocity, deltaVelocity);
     }
 
-    densityConstrain = density / uRestDensity - 1.;
+    particleVelocity += (uKernelConstant / uRestDensity) * deltaVelocity;
 
-    sum_k_grad_Ci += dot(grad_pi_Ci, grad_pi_Ci);
-
-    lambdaPressure = -densityConstrain / (sum_k_grad_Ci + uRelaxParameter);
-
-    colorData = vec4(lambdaPressure, densityConstrain, density, 1.);
+    colorData = vec4(particleVelocity, 1.);
 }
+
 `;
 
-export {calculateConstrains}
+export {calculateViscosity}

@@ -9,6 +9,8 @@ import {integrateVelocity}      from './shaders/PBF/vs-integrateVelocity.js';
 import {Camera}                 from './utils/camera.js';
 import {vsParticles}            from './shaders/utils/vs-renderParticles.js'
 import {calculateConstrains}    from './shaders/PBF/vs-calculateConstrains.js'
+import {calculateDisplacements} from './shaders/PBF/vs-calculateDisplacements.js'
+import {calculateViscosity}     from './shaders/PBF/vs-calculateViscosity.js'
 
 
 //=======================================================================================================
@@ -20,13 +22,11 @@ let canvas = document.querySelector("#canvas3D");
 const particlesTextureSize = 512;
 const neighborsTextureSize = 512;
 const bucketSize = 64;
-const deltaTime = 0.02;
+const deltaTime = 0.01;
 const FOV = 30;
 let cameraDistance = 3.5;
-let updateSimulation = false;
-let constrainsIterations = 3;
 
-let textureProgram, predictPositionsProgram, integrateVelocityProgram, totalParticles, renderParticlesProgram, calculateConstrainsProgram;
+let textureProgram, predictPositionsProgram, integrateVelocityProgram, totalParticles, renderParticlesProgram, calculateConstrainsProgram, calculateDisplacementsProgram, calculateViscosityProgram;
 let positionTexture, positionHelper1Texture, positionHelper2Texture, velocityTexture, velocityHelper1Texture;  //Positions and velocities textures for the particles
 let positionBuffer, velocityBuffer, positionHelper1Buffer, positionHelper2Buffer, velocityHelper1Buffer;
 let neighborhoodTexture, neighborhoodBuffer;
@@ -35,13 +35,21 @@ let lambdaTexture, lambdaBuffer;
 
 let camera = new Camera(canvas);
 
+let updateSimulation = true;
+let constrainsIterations = 3;
 let restDensity = 1000;
 let particleMass = restDensity;
-let searchRadius = 1.9;
-let relaxParameter = 0.095;  //<<<----- this requires checking
+let searchRadius = 1.8;
+let relaxParameter = .1;  //<<<----- this requires checking
 let wConstant = (315 / (64 * Math.PI * Math.pow(searchRadius, 9)));
 let densityConstant = wConstant * particleMass;
 let gradWconstant = -45 / (Math.PI * Math.pow(searchRadius, 6));
+
+let tensileConstant = 10;
+let tensilePower = 4;
+let tensileDistance = 0.3 * searchRadius;
+
+let viscosityConstant = 10.9 * 45 / (Math.PI * Math.pow(searchRadius, 6) * restDensity);
 
 //=======================================================================================================
 // Context and shaders generation
@@ -54,36 +62,62 @@ canvas.height = 1024;
 canvas.style.width = String(canvas.width) + "px";
 canvas.style.height = String(canvas.height) + "px";
 
-textureProgram                                      = webGL2.generateProgram(vsQuad, fsTextureColor);
-textureProgram.texture                              = gl.getUniformLocation(textureProgram, "uTexture");
+textureProgram                                          = webGL2.generateProgram(vsQuad, fsTextureColor);
+textureProgram.texture                                  = gl.getUniformLocation(textureProgram, "uTexture");
 
-predictPositionsProgram                             = webGL2.generateProgram(predictPositions, fsColor);
-predictPositionsProgram.positionTexture             = gl.getUniformLocation(predictPositionsProgram, "uTexturePosition");
-predictPositionsProgram.velocityTexture             = gl.getUniformLocation(predictPositionsProgram, "uTextureVelocity");
-predictPositionsProgram.deltaTime                   = gl.getUniformLocation(predictPositionsProgram, "uDeltaTime");
+predictPositionsProgram                                 = webGL2.generateProgram(predictPositions, fsColor);
+predictPositionsProgram.positionTexture                 = gl.getUniformLocation(predictPositionsProgram, "uTexturePosition");
+predictPositionsProgram.velocityTexture                 = gl.getUniformLocation(predictPositionsProgram, "uTextureVelocity");
+predictPositionsProgram.deltaTime                       = gl.getUniformLocation(predictPositionsProgram, "uDeltaTime");
 
-integrateVelocityProgram                            = webGL2.generateProgram(integrateVelocity, fsColor);
-integrateVelocityProgram.positionTexture            = gl.getUniformLocation(integrateVelocityProgram, "uTexturePosition");
-integrateVelocityProgram.positionOldTexture         = gl.getUniformLocation(integrateVelocityProgram, "uTexturePositionOld");
-integrateVelocityProgram.deltaTime                  = gl.getUniformLocation(integrateVelocityProgram, "uDeltaTime");
 
-renderParticlesProgram                              = webGL2.generateProgram(vsParticles, fsColor);
-renderParticlesProgram.positionTexture              = gl.getUniformLocation(renderParticlesProgram, "uTexturePosition");
-renderParticlesProgram.cameraMatrix                 = gl.getUniformLocation(renderParticlesProgram, "uCameraMatrix");
-renderParticlesProgram.perspectiveMatrix            = gl.getUniformLocation(renderParticlesProgram, "uPMatrix");
-renderParticlesProgram.scale                        = gl.getUniformLocation(renderParticlesProgram, "uScale");
-renderParticlesProgram.data                         = gl.getUniformLocation(renderParticlesProgram, "uTextureData");
-renderParticlesProgram.bucketData                   = gl.getUniformLocation(renderParticlesProgram, "uBucketData");
+integrateVelocityProgram                                = webGL2.generateProgram(integrateVelocity, fsColor);
+integrateVelocityProgram.positionTexture                = gl.getUniformLocation(integrateVelocityProgram, "uTexturePosition");
+integrateVelocityProgram.positionOldTexture             = gl.getUniformLocation(integrateVelocityProgram, "uTexturePositionOld");
+integrateVelocityProgram.deltaTime                      = gl.getUniformLocation(integrateVelocityProgram, "uDeltaTime");
 
-calculateConstrainsProgram                          = webGL2.generateProgram(calculateConstrains, fsColor);
-calculateConstrainsProgram.positionTexture          = gl.getUniformLocation(calculateConstrainsProgram, "uTexturePosition");
-calculateConstrainsProgram.neighbors                = gl.getUniformLocation(calculateConstrainsProgram, "uNeighbors");
-calculateConstrainsProgram.bucketData               = gl.getUniformLocation(calculateConstrainsProgram, "uBucketData");
-calculateConstrainsProgram.restDensity              = gl.getUniformLocation(calculateConstrainsProgram, "uRestDensity");
-calculateConstrainsProgram.searchRadius             = gl.getUniformLocation(calculateConstrainsProgram, "uSearchRadius");
-calculateConstrainsProgram.kernelConstant           = gl.getUniformLocation(calculateConstrainsProgram, "uKernelConstant");
-calculateConstrainsProgram.relaxParameter           = gl.getUniformLocation(calculateConstrainsProgram, "uRelaxParameter");
-calculateConstrainsProgram.gradientKernelConstant   = gl.getUniformLocation(calculateConstrainsProgram, "uGradientKernelConstant");
+
+renderParticlesProgram                                  = webGL2.generateProgram(vsParticles, fsColor);
+renderParticlesProgram.positionTexture                  = gl.getUniformLocation(renderParticlesProgram, "uTexturePosition");
+renderParticlesProgram.cameraMatrix                     = gl.getUniformLocation(renderParticlesProgram, "uCameraMatrix");
+renderParticlesProgram.perspectiveMatrix                = gl.getUniformLocation(renderParticlesProgram, "uPMatrix");
+renderParticlesProgram.scale                            = gl.getUniformLocation(renderParticlesProgram, "uScale");
+renderParticlesProgram.data                             = gl.getUniformLocation(renderParticlesProgram, "uTextureData");
+renderParticlesProgram.bucketData                       = gl.getUniformLocation(renderParticlesProgram, "uBucketData");
+
+
+calculateConstrainsProgram                              = webGL2.generateProgram(calculateConstrains, fsColor);
+calculateConstrainsProgram.positionTexture              = gl.getUniformLocation(calculateConstrainsProgram, "uTexturePosition");
+calculateConstrainsProgram.neighbors                    = gl.getUniformLocation(calculateConstrainsProgram, "uNeighbors");
+calculateConstrainsProgram.bucketData                   = gl.getUniformLocation(calculateConstrainsProgram, "uBucketData");
+calculateConstrainsProgram.restDensity                  = gl.getUniformLocation(calculateConstrainsProgram, "uRestDensity");
+calculateConstrainsProgram.searchRadius                 = gl.getUniformLocation(calculateConstrainsProgram, "uSearchRadius");
+calculateConstrainsProgram.kernelConstant               = gl.getUniformLocation(calculateConstrainsProgram, "uKernelConstant");
+calculateConstrainsProgram.relaxParameter               = gl.getUniformLocation(calculateConstrainsProgram, "uRelaxParameter");
+calculateConstrainsProgram.gradientKernelConstant       = gl.getUniformLocation(calculateConstrainsProgram, "uGradientKernelConstant");
+
+
+calculateDisplacementsProgram                           = webGL2.generateProgram(calculateDisplacements, fsColor);
+calculateDisplacementsProgram.positionTexture           = gl.getUniformLocation(calculateDisplacementsProgram, "uTexturePosition");
+calculateDisplacementsProgram.neighbors                 = gl.getUniformLocation(calculateDisplacementsProgram, "uNeighbors");
+calculateDisplacementsProgram.constrains                = gl.getUniformLocation(calculateDisplacementsProgram, "uConstrains");
+calculateDisplacementsProgram.bucketData                = gl.getUniformLocation(calculateDisplacementsProgram, "uBucketData");
+calculateDisplacementsProgram.restDensity               = gl.getUniformLocation(calculateDisplacementsProgram, "uRestDensity");
+calculateDisplacementsProgram.searchRadius              = gl.getUniformLocation(calculateDisplacementsProgram, "uSearchRadius");
+calculateDisplacementsProgram.gradientKernelConstant    = gl.getUniformLocation(calculateDisplacementsProgram, "uGradientKernelConstant");
+calculateDisplacementsProgram.tensileConstant           = gl.getUniformLocation(calculateDisplacementsProgram, "uTensileK");
+calculateDisplacementsProgram.tensilePower              = gl.getUniformLocation(calculateDisplacementsProgram, "uTensilePower");
+calculateDisplacementsProgram.tensileDistance           = gl.getUniformLocation(calculateDisplacementsProgram, "uTensileDistance");
+
+
+calculateViscosityProgram                               = webGL2.generateProgram(calculateViscosity, fsColor);
+calculateViscosityProgram.positionTexture               = gl.getUniformLocation(calculateViscosityProgram, "uTexturePosition");
+calculateViscosityProgram.velocityTexture               = gl.getUniformLocation(calculateViscosityProgram, "uTextureVelocity");
+calculateViscosityProgram.neighbors                     = gl.getUniformLocation(calculateViscosityProgram, "uNeighbors");
+calculateViscosityProgram.bucketData                    = gl.getUniformLocation(calculateViscosityProgram, "uBucketData");
+calculateViscosityProgram.restDensity                   = gl.getUniformLocation(calculateViscosityProgram, "uRestDensity");
+calculateViscosityProgram.searchRadius                  = gl.getUniformLocation(calculateViscosityProgram, "uSearchRadius");
+calculateViscosityProgram.kernelConstant                = gl.getUniformLocation(calculateViscosityProgram, "uKernelConstant");
 
 
 
@@ -92,8 +126,8 @@ calculateConstrainsProgram.gradientKernelConstant   = gl.getUniformLocation(calc
 //=======================================================================================================
 
 totalParticles = 0;
-let boxSize = bucketSize * 0.3;
-let radius = 18;
+let boxSize = bucketSize * 0.46;
+let radius = bucketSize * 0.48;
 let particlesPosition = [];
 let particlesVelocity = [];
 
@@ -102,28 +136,14 @@ for(let i = 0; i < bucketSize; i ++) {
     for(let j = 0; j < bucketSize; j ++) {
         for(let k = 0; k < bucketSize; k ++) {
 
-//            //Condition for the particle position and existence
-//            let x = i - bucketSize * 0.5;
-//            let y = j - bucketSize * 0.3;
-//            let z = k - bucketSize * 0.5;
-//
-//            if(x*x + y*y + z*z < radius * radius) {
-//                totalParticles ++;
-//                particlesPosition.push(i, j, k, 1);
-//                particlesVelocity.push(0, 0, 0, 0); //Velocity is zero for all the particles.
-//            }
-//
-//            y = j - bucketSize * 0.7;
-//            if(x*x + y*y + z*z < radius * radius) {
-//                totalParticles ++;
-//                particlesPosition.push(i, j, k, 1);
-//                particlesVelocity.push(0, 0, 0, 0); //Velocity is zero for all the particles.
-//            }
+            //Condition for the particle position and existence
+            let x = i - bucketSize * 0.5;
+            let y = j - bucketSize * 0.5;
+            let z = k - bucketSize * 0.5;
 
-            //Define planes of three layers to check density
-            if(Math.abs(j - bucketSize * 0.5) < boxSize && Math.abs(i - bucketSize * 0.5) < boxSize && Math.abs(k - bucketSize * 0.5) < boxSize) {
+            if(x*x + y*y + z*z < radius * radius && k < bucketSize * 0.5) {
                 totalParticles ++;
-                particlesPosition.push(i + 0., j + 0., k + 0., 1);
+                particlesPosition.push(i, j, k, 1);
                 particlesVelocity.push(0, 0, 0, 0); //Velocity is zero for all the particles.
             }
         }
@@ -175,42 +195,104 @@ let render = () => {
     camera.updateCamera(FOV, 1, cameraDistance);
 
     if(updateSimulation) {
-//        //Apply external forces (gravity)
-//        gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, positionHelper1Buffer);
-//        gl.viewport(0, 0, particlesTextureSize, particlesTextureSize);
-//        gl.useProgram(predictPositionsProgram);
-//        gl.uniform1f(predictPositionsProgram.deltaTime, deltaTime);
-//        webGL2.bindTexture(predictPositionsProgram.positionTexture, positionTexture, 0);
-//        webGL2.bindTexture(predictPositionsProgram.velocityTexture, velocityTexture, 1);
-//        gl.clear(gl.COLOR_BUFFER_BIT);
-//        gl.drawArrays(gl.POINTS, 0, totalParticles);
+
+        //Apply external forces (gravity)
+        gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, positionHelper1Buffer);
+        gl.viewport(0, 0, particlesTextureSize, particlesTextureSize);
+        gl.useProgram(predictPositionsProgram);
+        gl.uniform1f(predictPositionsProgram.deltaTime, deltaTime);
+        webGL2.bindTexture(predictPositionsProgram.positionTexture, positionTexture, 0);
+        webGL2.bindTexture(predictPositionsProgram.velocityTexture, velocityTexture, 1);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+        gl.drawArrays(gl.POINTS, 0, totalParticles);
 
 
         //Obtain the neighbors
-        searchNeighbords(positionTexture, neighborhoodBuffer, totalParticles, bucketSize);
+        searchNeighbords(positionHelper1Texture, neighborhoodBuffer, totalParticles, bucketSize);
+
 
         //Solve the constrains
-        for(let i = 0; i < constrainsIterations; i ++) solveConstrains();
+        for(let i = 0; i < constrainsIterations; i ++) {
 
-//        //Integrate the velocity
-//        gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, velocityBuffer);
-//        gl.viewport(0, 0, particlesTextureSize, particlesTextureSize);
-//        gl.useProgram(integrateVelocityProgram);
-//        gl.uniform1f(integrateVelocityProgram.deltaTime, deltaTime);
-//        webGL2.bindTexture(integrateVelocityProgram.positionTexture, positionHelper1Texture, 0);
-//        webGL2.bindTexture(integrateVelocityProgram.positionOldTexture, positionTexture, 1);
-//        gl.clear(gl.COLOR_BUFFER_BIT);
-//        gl.drawArrays(gl.POINTS, 0, totalParticles);
+            //Calculate the lambdas
+            gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, lambdaBuffer);
+            gl.viewport(0, 0, particlesTextureSize, particlesTextureSize);
+            gl.useProgram(calculateConstrainsProgram);
+            webGL2.bindTexture(calculateConstrainsProgram.positionTexture, positionHelper1Texture, 0);
+            webGL2.bindTexture(calculateConstrainsProgram.neighbors, neighborhoodTexture, 1);
+            gl.uniform3f(calculateConstrainsProgram.bucketData, neighborhoodTexture.width, bucketSize, neighborhoodTexture.width / bucketSize);
+            gl.uniform1f(calculateConstrainsProgram.restDensity, restDensity);
+            gl.uniform1f(calculateConstrainsProgram.kernelConstant, densityConstant);
+            gl.uniform1f(calculateConstrainsProgram.gradientKernelConstant, gradWconstant);
+            gl.uniform1f(calculateConstrainsProgram.searchRadius, searchRadius);
+            gl.uniform1f(calculateConstrainsProgram.relaxParameter, relaxParameter);
+            gl.clear(gl.COLOR_BUFFER_BIT);
+            gl.drawArrays(gl.POINTS, 0, totalParticles);
 
 
-//        //Set the position in the original texture
-//        gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, positionBuffer);
-//        gl.viewport(0, 0, particlesTextureSize, particlesTextureSize);
-//        gl.useProgram(textureProgram);
-//        webGL2.bindTexture(textureProgram.texture, positionHelper1Texture, 0);
-//        gl.clear(gl.COLOR_BUFFER_BIT);
-//        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+            //Calculate displacements
+            gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, positionHelper2Buffer);
+            gl.viewport(0, 0, particlesTextureSize, particlesTextureSize);
+            gl.useProgram(calculateDisplacementsProgram);
+            webGL2.bindTexture(calculateDisplacementsProgram.positionTexture, positionHelper1Texture, 0);
+            webGL2.bindTexture(calculateDisplacementsProgram.neighbors, neighborhoodTexture, 1);
+            webGL2.bindTexture(calculateDisplacementsProgram.constrains, lambdaTexture, 2);
+            gl.uniform3f(calculateDisplacementsProgram.bucketData, neighborhoodTexture.width, bucketSize, neighborhoodTexture.width / bucketSize);
+            gl.uniform1f(calculateDisplacementsProgram.restDensity, restDensity);
+            gl.uniform1f(calculateDisplacementsProgram.searchRadius, searchRadius);
+            gl.uniform1f(calculateDisplacementsProgram.gradientKernelConstant, gradWconstant);
+            gl.uniform1f(calculateDisplacementsProgram.tensileConstant, tensileConstant);
+            gl.uniform1f(calculateDisplacementsProgram.tensileDistance, tensileDistance);
+            gl.uniform1f(calculateDisplacementsProgram.tensilePower, tensilePower);
+            gl.clear(gl.COLOR_BUFFER_BIT);
+            gl.drawArrays(gl.POINTS, 0, totalParticles);
+
+
+            //Update data between helper textures
+            gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, positionHelper1Buffer);
+            gl.viewport(0, 0, particlesTextureSize, particlesTextureSize);
+            gl.useProgram(textureProgram);
+            webGL2.bindTexture(textureProgram.texture, positionHelper2Texture, 0);
+            gl.clear(gl.COLOR_BUFFER_BIT);
+            gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+        }
+
+        //Integrate the velocity
+        gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, velocityHelper1Buffer);
+        gl.viewport(0, 0, particlesTextureSize, particlesTextureSize);
+        gl.useProgram(integrateVelocityProgram);
+        gl.uniform1f(integrateVelocityProgram.deltaTime, deltaTime);
+        webGL2.bindTexture(integrateVelocityProgram.positionTexture, positionHelper1Texture, 0);
+        webGL2.bindTexture(integrateVelocityProgram.positionOldTexture, positionTexture, 1);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+        gl.drawArrays(gl.POINTS, 0, totalParticles);
+
+
+        //Apply viscosity
+        gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, velocityBuffer);
+        gl.viewport(0, 0, particlesTextureSize, particlesTextureSize);
+        gl.useProgram(calculateViscosityProgram);
+        webGL2.bindTexture(calculateViscosityProgram.positionTexture, positionHelper1Texture, 0);
+        webGL2.bindTexture(calculateViscosityProgram.velocityTexture, velocityHelper1Texture, 1);
+        webGL2.bindTexture(calculateViscosityProgram.neighbors, neighborhoodTexture, 2);
+        gl.uniform3f(calculateViscosityProgram.bucketData, neighborhoodTexture.width, bucketSize, neighborhoodTexture.width / bucketSize);
+        gl.uniform1f(calculateViscosityProgram.restDensity, restDensity);
+        gl.uniform1f(calculateViscosityProgram.searchRadius, searchRadius);
+        gl.uniform1f(calculateViscosityProgram.kernelConstant, viscosityConstant);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+        gl.drawArrays(gl.POINTS, 0, totalParticles);
+
+
+        //Update the positions.
+        gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, positionBuffer);
+        gl.viewport(0, 0, particlesTextureSize, particlesTextureSize);
+        gl.useProgram(textureProgram);
+        webGL2.bindTexture(textureProgram.texture, positionHelper1Texture, 0);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     }
+
 
     //Render particles
     gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
@@ -224,8 +306,11 @@ let render = () => {
     gl.uniformMatrix4fv(renderParticlesProgram.perspectiveMatrix, false, camera.perspectiveMatrix);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     gl.enable(gl.DEPTH_TEST);
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
     gl.drawArrays(gl.POINTS, 0, totalParticles);
     gl.disable(gl.DEPTH_TEST);
+    gl.disable(gl.BLEND);
 
 
     //Check textures
@@ -241,26 +326,3 @@ let render = () => {
 document.body.addEventListener("keydown", (e) => {updateSimulation = true;});
 
 render();
-
-//=======================================================================================================
-// Constrains iterations section (calculation of lambdas and repositioning with collisions
-//=======================================================================================================
-
-let solveConstrains = () => {
-
-    //Calculate the lambdas
-    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, lambdaBuffer);
-    gl.viewport(0, 0, particlesTextureSize, particlesTextureSize);
-    gl.useProgram(calculateConstrainsProgram);
-    webGL2.bindTexture(calculateConstrainsProgram.positionTexture, positionTexture, 0);
-    webGL2.bindTexture(calculateConstrainsProgram.neighbors, neighborhoodTexture, 1);
-    gl.uniform3f(calculateConstrainsProgram.bucketData, neighborhoodTexture.width, bucketSize, neighborhoodTexture.width / bucketSize);
-    gl.uniform1f(calculateConstrainsProgram.restDensity, restDensity);
-    gl.uniform1f(calculateConstrainsProgram.kernelConstant, densityConstant);
-    gl.uniform1f(calculateConstrainsProgram.gradientKernelConstant, gradWconstant);
-    gl.uniform1f(calculateConstrainsProgram.searchRadius, searchRadius);
-    gl.uniform1f(calculateConstrainsProgram.relaxParameter, relaxParameter);
-    gl.clear(gl.COLOR_BUFFER_BIT);
-    gl.drawArrays(gl.POINTS, 0, totalParticles);
-
-}

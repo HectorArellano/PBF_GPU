@@ -1,38 +1,40 @@
-const calculateConstrains = `#version 300 es
+const calculateDisplacements = `#version 300 es
 
 precision highp float;
 precision highp sampler2D;
 
 uniform sampler2D uTexturePosition;
 uniform sampler2D uNeighbors;
-uniform vec3 uBucketData;
+uniform sampler2D uConstrains;
+uniform vec3  uBucketData;
 uniform float uSearchRadius;
-uniform float uKernelConstant;
-uniform float uRelaxParameter;
-uniform float uGradientKernelConstant;
 uniform float uRestDensity;
+uniform float uGradientKernelConstant;
+uniform float uTensileK;
+uniform float uTensileDistance;
+uniform float uTensilePower;
 
-out vec4 colorData;
 vec3 offsets[27];
 float texturePositionSize;
 float h2;
 
-void addToSum(in vec3 particlePosition, in float neighborIndex, inout float density, inout float sum_k_grad_Ci, inout vec3 grad_pi_Ci) {
+out vec4 colorData;
 
-    vec3 distance = particlePosition - texture(uTexturePosition, vec2(mod(neighborIndex, texturePositionSize) + 0.5, floor(neighborIndex / texturePositionSize) + 0.5) / texturePositionSize).rgb;
+void addToSum(in vec3 particlePosition, in float neighborIndex, in float lambdaPressure, inout vec3 deltaPosition) {
+
+    vec2 index = vec2(mod(neighborIndex, texturePositionSize) + 0.5, floor(neighborIndex / texturePositionSize) + 0.5) / texturePositionSize;
+    vec3 distance = particlePosition - texture(uTexturePosition, index).rgb;
     float r = length(distance);
 
-    if(r < uSearchRadius) {
+    if(r > 0. && r < uSearchRadius) {
 
-        float partial = h2 - dot(distance, distance);
-        density += uKernelConstant * partial * partial * partial;
+        float n_lambdaPressure = texture(uConstrains, index).r;
+        float partial = uSearchRadius - r;
 
-        if(r > 0.) {
-            partial = uSearchRadius - r;
-            vec3 grad_pk_Ci = uGradientKernelConstant * partial * partial * normalize(distance) / uRestDensity;
-            sum_k_grad_Ci += dot(grad_pk_Ci, grad_pk_Ci);
-            grad_pi_Ci += grad_pk_Ci;
-        }
+        //For the lambda Correction
+        float lambdaCorrection = -uTensileK * pow((h2 - r * r) / (h2 - uTensileDistance * uTensileDistance), 3. * uTensilePower);
+
+        deltaPosition += (lambdaPressure + n_lambdaPressure + lambdaCorrection) * partial * partial * normalize(distance);
     }
 }
 
@@ -40,6 +42,7 @@ void main() {
 
     texturePositionSize = float(textureSize(uTexturePosition, 0).x);
     h2 = uSearchRadius * uSearchRadius;
+
 
     offsets[0] = vec3(-1., -1., -1.);
     offsets[1] = vec3(-1., -1., 0.);
@@ -75,15 +78,10 @@ void main() {
     gl_Position = vec4(2. * index - vec2(1.), 0., 1.);
     gl_PointSize = 1.;
 
-    //Particle position goes from [0 - 128);
+    float lambdaPressure = texture(uConstrains, index).x;
     vec3 particlePosition = texture(uTexturePosition, index).rgb;
     vec3 gridPosition = floor(particlePosition);
-
-    float density = 0.;
-    float densityConstrain = 0.;
-    float lambdaPressure = 0.;
-    float sum_k_grad_Ci = 0.;
-    vec3 grad_pi_Ci = vec3(0.);
+    vec3 deltaPosition = vec3(0.);
 
     for(int i = 0; i < 27; i ++) {
 
@@ -93,20 +91,28 @@ void main() {
         //vec2 voxelsIndex = (vec2(mod(gridIndex, uBucketData.x), floor(gridIndex / uBucketData.x)) + vec2(0.5)) / uBucketData.x;
         vec4 neighbors = texture(uNeighbors, voxelsIndex);
 
-        if(neighbors.r > 0.) addToSum(particlePosition, neighbors.r, density, sum_k_grad_Ci, grad_pi_Ci);
-        if(neighbors.g > 0.) addToSum(particlePosition, neighbors.g, density, sum_k_grad_Ci, grad_pi_Ci);
-        if(neighbors.b > 0.) addToSum(particlePosition, neighbors.b, density, sum_k_grad_Ci, grad_pi_Ci);
-        if(neighbors.a > 0.) addToSum(particlePosition, neighbors.a, density, sum_k_grad_Ci, grad_pi_Ci);
+        if(neighbors.r > 0.) addToSum(particlePosition, neighbors.r, lambdaPressure, deltaPosition);
+        if(neighbors.g > 0.) addToSum(particlePosition, neighbors.g, lambdaPressure, deltaPosition);
+        if(neighbors.b > 0.) addToSum(particlePosition, neighbors.b, lambdaPressure, deltaPosition);
+        if(neighbors.a > 0.) addToSum(particlePosition, neighbors.a, lambdaPressure, deltaPosition);
     }
 
-    densityConstrain = density / uRestDensity - 1.;
+    vec3 endPosition = particlePosition + (uGradientKernelConstant / uRestDensity) * deltaPosition;
 
-    sum_k_grad_Ci += dot(grad_pi_Ci, grad_pi_Ci);
+    //Collision handling
+    vec3 center = vec3(uBucketData.y * 0.5);
+    float radius = uBucketData.y * 0.49;
+    vec3 normal = endPosition - center;
+    float n = length(normal);
+    float distance = n -  radius;
+    if(distance > 0.) {
+        normal = normalize(normal);
+        endPosition = center + normal * radius;
+    }
 
-    lambdaPressure = -densityConstrain / (sum_k_grad_Ci + uRelaxParameter);
-
-    colorData = vec4(lambdaPressure, densityConstrain, density, 1.);
+    colorData = vec4(endPosition, 1.);
 }
+
 `;
 
-export {calculateConstrains}
+export {calculateDisplacements}

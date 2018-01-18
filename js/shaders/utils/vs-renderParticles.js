@@ -19,13 +19,13 @@ void main() {
 
     if(position.y < 0.) position = vec3(0.);
 
-    colorData.rgb = abs(texture(uTextureData, index).ggg);
+    colorData.rgb = abs(texture(uTexturePosition, index).rgb) / 64.;
 
-    colorData.a = 1.;
+    colorData.a = .4;
 
     gl_Position = uPMatrix * uCameraMatrix * vec4(position, 1.);
 
-    gl_PointSize = 9.;
+    gl_PointSize = 4.;
 }
 `;
 
