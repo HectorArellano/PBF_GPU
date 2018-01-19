@@ -19,22 +19,22 @@ import {calculateViscosity}     from './shaders/PBF/vs-calculateViscosity.js'
 
 let canvas = document.querySelector("#canvas3D");
 
-const particlesTextureSize = 1024;
-const neighborsTextureSize = 2048;
-const bucketSize = 128;
+const particlesTextureSize = 512;
+const neighborsTextureSize = 512;
+const bucketSize = 64;
 const FOV = 30;
 
 let textureProgram, predictPositionsProgram, integrateVelocityProgram, renderParticlesProgram, calculateConstrainsProgram, calculateDisplacementsProgram, calculateViscosityProgram;
 let positionTexture, positionHelper1Texture, positionHelper2Texture, velocityTexture, velocityHelper1Texture;  //Positions and velocities textures for the particles
 let positionBuffer, velocityBuffer, positionHelper1Buffer, positionHelper2Buffer, velocityHelper1Buffer;
-let neighborhoodTexture, neighborhoodBuffer, lambdaTexture, lambdaBuffer;
+let neighborhoodTexture, neighborhoodBuffer;
 
 let camera = new Camera(canvas);
 let cameraDistance = 3.5;
 
 let updateSimulation = true;
 let deltaTime = 0.01;
-let constrainsIterations = 8;
+let constrainsIterations = 3;
 let restDensity = 1000;
 let particleMass = restDensity;
 let searchRadius = 1.8;
@@ -62,21 +62,11 @@ for(let i = 0; i < bucketSize; i ++) {
             let y = j - bucketSize * 0.5;
             let z = k - bucketSize * 0.5;
 
-            if(x*x + y*y + z*z < radius * radius && j < bucketSize * 0.3) {
+            if(x*x + y*y + z*z < radius * radius && k < bucketSize * 0.4) {
                 totalParticles ++;
                 particlesPosition.push(i, j, k, 1);
                 particlesVelocity.push(0, 0, 0, 0); //Velocity is zero for all the particles.
             }
-
-            y = j - bucketSize * 0.8;
-
-            if(x*x + y*y + z*z < 15 * 15) {
-                totalParticles ++;
-                particlesPosition.push(i, j, k, 1);
-                particlesVelocity.push(0, -30, 0, 0); //Velocity is zero for all the particles.
-            }
-
-
         }
     }
 }
@@ -168,8 +158,6 @@ velocityTexture         = webGL2.createTexture2D(particlesTextureSize, particles
 velocityHelper1Texture  = webGL2.createTexture2D(particlesTextureSize, particlesTextureSize, gl.RGBA32F, gl.RGBA, gl.NEAREST, gl.NEAREST, gl.FLOAT, null);
 neighborhoodTexture     = webGL2.createTexture2D(neighborsTextureSize, neighborsTextureSize, gl.RGBA32F, gl.RGBA, gl.NEAREST, gl.NEAREST, gl.FLOAT, null);
 
-lambdaTexture           = webGL2.createTexture2D(particlesTextureSize, particlesTextureSize, gl.RGBA32F, gl.RGBA, gl.NEAREST, gl.NEAREST, gl.FLOAT, null);
-
 //Corresponding buffers
 positionBuffer          = webGL2.createDrawFramebuffer(positionTexture);
 positionHelper1Buffer   = webGL2.createDrawFramebuffer(positionHelper1Texture);
@@ -177,8 +165,6 @@ positionHelper2Buffer   = webGL2.createDrawFramebuffer(positionHelper2Texture);
 velocityBuffer          = webGL2.createDrawFramebuffer(velocityTexture);
 velocityHelper1Buffer   = webGL2.createDrawFramebuffer(velocityHelper1Texture);
 neighborhoodBuffer      = webGL2.createDrawFramebuffer(neighborhoodTexture, true, true);
-
-lambdaBuffer            = webGL2.createDrawFramebuffer(lambdaTexture);
 
 
 particlesPosition = null;
@@ -217,7 +203,7 @@ let render = () => {
         for(let i = 0; i < constrainsIterations; i ++) {
 
             //Calculate the lambdas
-            gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, lambdaBuffer);
+            gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, velocityHelper1Buffer);
             gl.viewport(0, 0, particlesTextureSize, particlesTextureSize);
             gl.useProgram(calculateConstrainsProgram);
             webGL2.bindTexture(calculateConstrainsProgram.positionTexture, positionHelper1Texture, 0);
@@ -238,7 +224,7 @@ let render = () => {
             gl.useProgram(calculateDisplacementsProgram);
             webGL2.bindTexture(calculateDisplacementsProgram.positionTexture, positionHelper1Texture, 0);
             webGL2.bindTexture(calculateDisplacementsProgram.neighbors, neighborhoodTexture, 1);
-            webGL2.bindTexture(calculateDisplacementsProgram.constrains, lambdaTexture, 2);
+            webGL2.bindTexture(calculateDisplacementsProgram.constrains, velocityHelper1Texture, 2);
             gl.uniform3f(calculateDisplacementsProgram.bucketData, neighborhoodTexture.width, bucketSize, neighborhoodTexture.width / bucketSize);
             gl.uniform1f(calculateDisplacementsProgram.restDensity, restDensity);
             gl.uniform1f(calculateDisplacementsProgram.searchRadius, searchRadius);
@@ -301,7 +287,7 @@ let render = () => {
     gl.viewport(0, 0, 1024, 1024);
     gl.useProgram(renderParticlesProgram);
     webGL2.bindTexture(renderParticlesProgram.positionTexture, positionTexture, 0);
-    webGL2.bindTexture(renderParticlesProgram.data, lambdaTexture, 1);
+    webGL2.bindTexture(renderParticlesProgram.data, velocityHelper1Texture, 1);
     gl.uniform1f(renderParticlesProgram.scale, bucketSize);
     gl.uniform3f(renderParticlesProgram.bucketData, neighborhoodTexture.width, bucketSize, neighborhoodTexture.width / bucketSize);
     gl.uniformMatrix4fv(renderParticlesProgram.cameraMatrix, false, camera.cameraTransformMatrix);
