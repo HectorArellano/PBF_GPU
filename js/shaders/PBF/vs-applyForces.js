@@ -6,6 +6,7 @@ precision highp float;
 uniform sampler2D uTexturePosition;
 uniform sampler2D uTextureVelocity;
 uniform float uDeltaTime;
+uniform vec3 uAcceleration;
 
 out vec4 colorData;
 
@@ -17,8 +18,7 @@ void main() {
     gl_Position = vec4(2. * index - vec2(1.), 0., 1.);
     gl_PointSize = 1.;
 
-    vec3 gravity = vec3(0., -10., 0.);
-    colorData = vec4(texture(uTexturePosition, index).rgb + (texture(uTextureVelocity, index).rgb + gravity * uDeltaTime) * uDeltaTime, 1.);
+    colorData = vec4(texture(uTexturePosition, index).rgb + (texture(uTextureVelocity, index).rgb + uAcceleration * uDeltaTime) * uDeltaTime, 1.);
 }
 
 `;

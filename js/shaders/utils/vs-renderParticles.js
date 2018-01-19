@@ -19,7 +19,7 @@ void main() {
 
     if(position.y < 0.) position = vec3(0.);
 
-    colorData.rgb = texture(uTexturePosition, index).rgb/ 64.;
+    colorData.rgb = texture(uTexturePosition, index).rgb / uScale;
 
     colorData.a = .2;
 

@@ -76,6 +76,7 @@ let totalParticles = 0;
 let radius = bucketSize * 0.48;
 let particlesPosition = [];
 let particlesVelocity = [];
+let currentFrame = 0;
 
 
 //Generate the position and velocity
@@ -125,6 +126,7 @@ predictPositionsProgram                                 = webGL2.generateProgram
 predictPositionsProgram.positionTexture                 = gl.getUniformLocation(predictPositionsProgram, "uTexturePosition");
 predictPositionsProgram.velocityTexture                 = gl.getUniformLocation(predictPositionsProgram, "uTextureVelocity");
 predictPositionsProgram.deltaTime                       = gl.getUniformLocation(predictPositionsProgram, "uDeltaTime");
+predictPositionsProgram.acceleration                    = gl.getUniformLocation(predictPositionsProgram, "uAcceleration");
 
 
 integrateVelocityProgram                                = webGL2.generateProgram(integrateVelocity, fsColor);
@@ -205,6 +207,7 @@ let render = () => {
     requestAnimationFrame(render);
 
     camera.updateCamera(FOV, 1, cameraDistance);
+    let acceleration = {x:4. * Math.sin(currentFrame * Math.PI  / 180), y:-10,  z:4. * Math.cos(currentFrame * Math.PI  / 180)}
 
     if(updateSimulation) {
 
@@ -213,6 +216,7 @@ let render = () => {
         gl.viewport(0, 0, particlesTextureSize, particlesTextureSize);
         gl.useProgram(predictPositionsProgram);
         gl.uniform1f(predictPositionsProgram.deltaTime, deltaTime);
+        gl.uniform3f(predictPositionsProgram.acceleration, acceleration.x, acceleration.y, acceleration.z);
         webGL2.bindTexture(predictPositionsProgram.positionTexture, positionTexture, 0);
         webGL2.bindTexture(predictPositionsProgram.velocityTexture, velocityTexture, 1);
         gl.clear(gl.COLOR_BUFFER_BIT);
@@ -303,6 +307,8 @@ let render = () => {
         webGL2.bindTexture(textureProgram.texture, pbfTexture1, 0);
         gl.clear(gl.COLOR_BUFFER_BIT);
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+        currentFrame ++;
     }
 
 
