@@ -1,9 +1,9 @@
 import {gl}                     from './utils/webGL2.js';
 import * as webGL2              from './utils/webGL2.js';
+import * as PBF                 from './pbf.js';
 import {Camera}                 from './utils/camera.js';
 import {vsParticles}            from './shaders/utils/vs-renderParticles.js'
 import {fsColor}                from './shaders/utils/fs-simpleColor.js';
-import * as PBF                 from './pbf.js';
 
 
 //=======================================================================================================
@@ -29,6 +29,7 @@ let particlesPosition = [];
 let particlesVelocity = [];
 let radius = bucketSize * 0.48;
 
+
 //Generate the position and velocity
 for(let i = 0; i < bucketSize; i ++) {
     for(let j = 0; j < bucketSize; j ++) {
@@ -47,12 +48,6 @@ for(let i = 0; i < bucketSize; i ++) {
     }
 }
 
-
-//Initiate the simulation
-PBF.init(particlesPosition, particlesVelocity, bucketSize, voxelTextureSize);
-particlesPosition = null;
-particlesVelocity = null;
-
 let renderParticlesProgram                              = webGL2.generateProgram(vsParticles, fsColor);
 renderParticlesProgram.positionTexture                  = gl.getUniformLocation(renderParticlesProgram, "uTexturePosition");
 renderParticlesProgram.cameraMatrix                     = gl.getUniformLocation(renderParticlesProgram, "uCameraMatrix");
@@ -63,6 +58,10 @@ renderParticlesProgram.scale                            = gl.getUniformLocation(
 //=======================================================================================================
 // Simulation and Rendering (Position based fluids)
 //=======================================================================================================
+
+PBF.init(particlesPosition, particlesVelocity, bucketSize, voxelTextureSize);
+particlesPosition = null;
+particlesVelocity = null;
 
 let render = () => {
 
@@ -75,7 +74,7 @@ let render = () => {
 
     //Render particles
     gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
-    gl.viewport(0, 0, 1024, 1024);
+    gl.viewport(0, 0, canvas.width, canvas.height);
     gl.useProgram(renderParticlesProgram);
     webGL2.bindTexture(renderParticlesProgram.positionTexture, PBF.positionTexture, 0);
     gl.uniform1f(renderParticlesProgram.scale, bucketSize);
@@ -86,6 +85,6 @@ let render = () => {
     gl.drawArrays(gl.POINTS, 0, PBF.totalParticles);
     gl.disable(gl.DEPTH_TEST);
 
-}
+};
 
 render();
