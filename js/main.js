@@ -25,6 +25,7 @@ let FOV = 30;
 
 let bucketSize = 64;
 let voxelTextureSize = 512;
+let particlesTextureSize = 256;
 let particlesPosition = [];
 let particlesVelocity = [];
 let radius = bucketSize * 0.48;
@@ -59,7 +60,7 @@ renderParticlesProgram.scale                            = gl.getUniformLocation(
 // Simulation and Rendering (Position based fluids)
 //=======================================================================================================
 
-PBF.init(particlesPosition, particlesVelocity, bucketSize, voxelTextureSize);
+PBF.init(particlesPosition, particlesVelocity, bucketSize, voxelTextureSize, particlesTextureSize);
 particlesPosition = null;
 particlesVelocity = null;
 

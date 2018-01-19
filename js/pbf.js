@@ -71,14 +71,13 @@ let tensileDistance = tensileDistanceMultiplier * searchRadius;
 // This is used to initiate the simulator
 //=======================================================================================================
 
-let init = (particlesPosition, particlesVelocity, _bucketSize, _voxelsTextureSize) => {
+let init = (particlesPosition, particlesVelocity, _bucketSize, _voxelsTextureSize, _particlesTextureSize) => {
 
     bucketSize = _bucketSize;
     voxelsTextureSize = _voxelsTextureSize;
-
+    particlesTextureSize = _particlesTextureSize;
     totalParticles = particlesPosition.length / 4.;
 
-    particlesTextureSize = Math.ceil(Math.sqrt(totalParticles));
 
     //This fills the rest of buffer to generate the texture
     for(let i = totalParticles; i < particlesTextureSize * particlesTextureSize; i ++) {
