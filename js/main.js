@@ -20,8 +20,9 @@ import {calculateViscosity}     from './shaders/PBF/vs-calculateViscosity.js'
 let canvas = document.querySelector("#canvas3D");
 
 const particlesTextureSize = 512;
-const voxelsTextureSize = 512;
-const bucketSize = 64;
+const bucketSize = 50;
+const voxelsTextureSize = Math.ceil(Math.sqrt(Math.pow(bucketSize, 3)));
+
 
 //Shader programs
 let textureProgram,
