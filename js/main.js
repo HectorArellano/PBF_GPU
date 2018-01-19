@@ -19,8 +19,8 @@ import {calculateViscosity}     from './shaders/PBF/vs-calculateViscosity.js'
 
 let canvas = document.querySelector("#canvas3D");
 
-const particlesTextureSize = 512;
-const bucketSize = 50;
+let particlesTextureSize;
+const bucketSize = 64;
 const voxelsTextureSize = Math.ceil(Math.sqrt(Math.pow(bucketSize, 3)));
 
 
@@ -54,7 +54,7 @@ let FOV = 30;
 
 
 let deltaTime = 0.01;
-let constrainsIterations = 3;
+let constrainsIterations = 4;
 let restDensity = 1000;
 let searchRadius = 1.8;
 let relaxParameter = .05;  //<<<------------------------------------------- this is very sensible
@@ -99,7 +99,7 @@ for(let i = 0; i < bucketSize; i ++) {
     }
 }
 
-console.log("total particles used: " + totalParticles);
+particlesTextureSize = Math.ceil(Math.sqrt(totalParticles));
 
 //This fills the rest of buffer to generate the texture
 for(let i = totalParticles; i < particlesTextureSize * particlesTextureSize; i ++) {
@@ -107,6 +107,17 @@ for(let i = totalParticles; i < particlesTextureSize * particlesTextureSize; i +
     particlesVelocity.push(0, 0, 0, 0);
 }
 
+let memoryConsumption = (4 * particlesTextureSize * particlesTextureSize + voxelsTextureSize * voxelsTextureSize)* 32 * 4; //bits
+memoryConsumption /= 8; //bytes
+memoryConsumption /= 1000000 //megabites
+
+
+console.log("===============================");
+console.log("total particles used: " + totalParticles);
+console.log("particles texture size is: " + particlesTextureSize);
+console.log("neighbors texture size is: " + voxelsTextureSize);
+console.log("GPU memory consumption is: " + Math.ceil(memoryConsumption) + "Mb");
+console.log("===============================");
 
 //=======================================================================================================
 // Context, shaders (programs), textures and buffers generation
@@ -208,7 +219,7 @@ let render = () => {
     requestAnimationFrame(render);
 
     camera.updateCamera(FOV, 1, cameraDistance);
-    let acceleration = {x:4. * Math.sin(currentFrame * Math.PI  / 180), y:-10,  z:4. * Math.cos(currentFrame * Math.PI  / 180)}
+    let acceleration = {x:0. * Math.sin(currentFrame * Math.PI  / 180), y:-10,  z:0. * Math.cos(currentFrame * Math.PI  / 180)}
 
     if(updateSimulation) {
 
