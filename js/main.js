@@ -28,7 +28,8 @@ let voxelTextureSize = 512;
 let particlesTextureSize = 256;
 let particlesPosition = [];
 let particlesVelocity = [];
-let radius = bucketSize * 0.48;
+let radius = bucketSize * 0.39;
+let currentFrame = 0;
 
 
 //Generate the position and velocity
@@ -41,9 +42,9 @@ for(let i = 0; i < bucketSize; i ++) {
             let y = j - bucketSize * 0.5;
             let z = k - bucketSize * 0.5;
 
-            if(x*x + y*y + z*z < radius * radius && k < bucketSize * 0.4) {
+            if(x*x + y*y + z*z < radius * radius && k < bucketSize * 0.5) {
                 particlesPosition.push(i, j, k, 1);
-                particlesVelocity.push(0, 0, 0, 0); //Velocity is zero for all the particles.
+                particlesVelocity.push(0, -30, 0, 0); //Velocity is zero for all the particles.
             }
         }
     }
@@ -69,7 +70,7 @@ let render = () => {
     requestAnimationFrame(render);
 
     camera.updateCamera(FOV, 1, cameraDistance);
-    let acceleration = {x:0, y:-10,  z:0}
+    let acceleration = {x:6 * Math.sin(currentFrame * Math.PI / 180), y:-10,  z:6 * Math.cos(currentFrame * Math.PI / 180)}
 
     PBF.updateFrame(acceleration);
 
@@ -85,6 +86,8 @@ let render = () => {
     gl.enable(gl.DEPTH_TEST);
     gl.drawArrays(gl.POINTS, 0, PBF.totalParticles);
     gl.disable(gl.DEPTH_TEST);
+
+    currentFrame ++;
 
 };
 
