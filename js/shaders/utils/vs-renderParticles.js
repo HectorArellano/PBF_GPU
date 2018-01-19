@@ -3,7 +3,6 @@ uniform mat4 uCameraMatrix;
 uniform mat4 uPMatrix;
 
 uniform sampler2D uTexturePosition;
-uniform sampler2D uTextureData;
 uniform float uScale;
 uniform vec3 uBucketData;
 out vec4 colorData;
@@ -19,9 +18,9 @@ void main() {
 
     if(position.y < 0.) position = vec3(0.);
 
-    colorData.rgb = texture(uTexturePosition, index).rgb / uScale;
+    colorData.rgb = position;
 
-    colorData.a = .2;
+    colorData.a = 1.;
 
     gl_Position = uPMatrix * uCameraMatrix * vec4(position, 1.);
 
