@@ -35,16 +35,16 @@ let textureProgram,
 
 //Textures used.
 let positionTexture,
-    velocityTexture,
-    positionHelper1Texture,
-    velocityHelper1Texture,
+    pbfTexture1,
+    pbfTexture2,
+    pbfTexture3,
     neighborhoodTexture;
 
 //Buffers used.
 let positionBuffer,
-    velocityBuffer,
-    positionHelper1Buffer,
-    velocityHelper1Buffer,
+    pbfBuffer1,
+    pbfBuffer2,
+    pbfBuffer3,
     neighborhoodBuffer;
 
 let camera = new Camera(canvas);
@@ -169,23 +169,23 @@ calculateViscosityProgram.kernelConstant                = gl.getUniformLocation(
 
 
 //Required textures for simulations
-positionTexture         = webGL2.createTexture2D(particlesTextureSize, particlesTextureSize, gl.RGBA32F, gl.RGBA, gl.NEAREST, gl.NEAREST, gl.FLOAT, new Float32Array(particlesPosition));
-positionHelper1Texture  = webGL2.createTexture2D(particlesTextureSize, particlesTextureSize, gl.RGBA32F, gl.RGBA, gl.NEAREST, gl.NEAREST, gl.FLOAT, null);
-velocityTexture         = webGL2.createTexture2D(particlesTextureSize, particlesTextureSize, gl.RGBA32F, gl.RGBA, gl.NEAREST, gl.NEAREST, gl.FLOAT, new Float32Array(particlesVelocity));
-velocityHelper1Texture  = webGL2.createTexture2D(particlesTextureSize, particlesTextureSize, gl.RGBA32F, gl.RGBA, gl.NEAREST, gl.NEAREST, gl.FLOAT, null);
-neighborhoodTexture     = webGL2.createTexture2D(neighborsTextureSize, neighborsTextureSize, gl.RGBA32F, gl.RGBA, gl.NEAREST, gl.NEAREST, gl.FLOAT, null);
+positionTexture     = webGL2.createTexture2D(particlesTextureSize, particlesTextureSize, gl.RGBA32F, gl.RGBA, gl.NEAREST, gl.NEAREST, gl.FLOAT, new Float32Array(particlesPosition));
+pbfTexture1         = webGL2.createTexture2D(particlesTextureSize, particlesTextureSize, gl.RGBA32F, gl.RGBA, gl.NEAREST, gl.NEAREST, gl.FLOAT, new Float32Array(particlesVelocity));
+pbfTexture2         = webGL2.createTexture2D(particlesTextureSize, particlesTextureSize, gl.RGBA32F, gl.RGBA, gl.NEAREST, gl.NEAREST, gl.FLOAT, null);
+pbfTexture3         = webGL2.createTexture2D(particlesTextureSize, particlesTextureSize, gl.RGBA32F, gl.RGBA, gl.NEAREST, gl.NEAREST, gl.FLOAT, null);
+neighborhoodTexture = webGL2.createTexture2D(neighborsTextureSize, neighborsTextureSize, gl.RGBA32F, gl.RGBA, gl.NEAREST, gl.NEAREST, gl.FLOAT, null);
+
 
 //Corresponding buffers
-positionBuffer          = webGL2.createDrawFramebuffer(positionTexture);
-positionHelper1Buffer   = webGL2.createDrawFramebuffer(positionHelper1Texture);
-velocityBuffer          = webGL2.createDrawFramebuffer(velocityTexture);
-velocityHelper1Buffer   = webGL2.createDrawFramebuffer(velocityHelper1Texture);
-neighborhoodBuffer      = webGL2.createDrawFramebuffer(neighborhoodTexture, true, true);
+positionBuffer      = webGL2.createDrawFramebuffer(positionTexture);
+pbfBuffer1          = webGL2.createDrawFramebuffer(pbfTexture1);
+pbfBuffer2          = webGL2.createDrawFramebuffer(pbfTexture2);
+pbfBuffer3          = webGL2.createDrawFramebuffer(pbfTexture3);
+neighborhoodBuffer  = webGL2.createDrawFramebuffer(neighborhoodTexture, true, true);
 
 
 particlesPosition = null;
 particlesVelocity = null;
-
 
 
 //=======================================================================================================
@@ -201,28 +201,28 @@ let render = () => {
     if(updateSimulation) {
 
         //Apply external forces (gravity)
-        gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, positionHelper1Buffer);
+        gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, pbfBuffer2);
         gl.viewport(0, 0, particlesTextureSize, particlesTextureSize);
         gl.useProgram(predictPositionsProgram);
         gl.uniform1f(predictPositionsProgram.deltaTime, deltaTime);
         webGL2.bindTexture(predictPositionsProgram.positionTexture, positionTexture, 0);
-        webGL2.bindTexture(predictPositionsProgram.velocityTexture, velocityTexture, 1);
+        webGL2.bindTexture(predictPositionsProgram.velocityTexture, pbfTexture1, 1);
         gl.clear(gl.COLOR_BUFFER_BIT);
         gl.drawArrays(gl.POINTS, 0, totalParticles);
 
 
         //Obtain the neighbors
-        searchNeighbords(positionHelper1Texture, neighborhoodBuffer, totalParticles, bucketSize);
+        searchNeighbords(pbfTexture2, neighborhoodBuffer, totalParticles, bucketSize);
 
 
         //Solve the constrains
         for(let i = 0; i < constrainsIterations; i ++) {
 
             //Calculate the lambdas
-            gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, velocityHelper1Buffer);
+            gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, pbfBuffer3);
             gl.viewport(0, 0, particlesTextureSize, particlesTextureSize);
             gl.useProgram(calculateConstrainsProgram);
-            webGL2.bindTexture(calculateConstrainsProgram.positionTexture, positionHelper1Texture, 0);
+            webGL2.bindTexture(calculateConstrainsProgram.positionTexture, pbfTexture2, 0);
             webGL2.bindTexture(calculateConstrainsProgram.neighbors, neighborhoodTexture, 1);
             gl.uniform3f(calculateConstrainsProgram.bucketData, neighborhoodTexture.width, bucketSize, neighborhoodTexture.width / bucketSize);
             gl.uniform1f(calculateConstrainsProgram.restDensity, restDensity);
@@ -235,12 +235,12 @@ let render = () => {
 
 
             //Calculate displacements
-            gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, velocityBuffer);
+            gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, pbfBuffer1);
             gl.viewport(0, 0, particlesTextureSize, particlesTextureSize);
             gl.useProgram(calculateDisplacementsProgram);
-            webGL2.bindTexture(calculateDisplacementsProgram.positionTexture, positionHelper1Texture, 0);
+            webGL2.bindTexture(calculateDisplacementsProgram.positionTexture, pbfTexture2, 0);
             webGL2.bindTexture(calculateDisplacementsProgram.neighbors, neighborhoodTexture, 1);
-            webGL2.bindTexture(calculateDisplacementsProgram.constrains, velocityHelper1Texture, 2);
+            webGL2.bindTexture(calculateDisplacementsProgram.constrains, pbfTexture3, 2);
             gl.uniform3f(calculateDisplacementsProgram.bucketData, neighborhoodTexture.width, bucketSize, neighborhoodTexture.width / bucketSize);
             gl.uniform1f(calculateDisplacementsProgram.restDensity, restDensity);
             gl.uniform1f(calculateDisplacementsProgram.searchRadius, searchRadius);
@@ -253,32 +253,32 @@ let render = () => {
 
 
             //Update data between helper textures
-            gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, positionHelper1Buffer);
+            gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, pbfBuffer2);
             gl.viewport(0, 0, particlesTextureSize, particlesTextureSize);
             gl.useProgram(textureProgram);
-            webGL2.bindTexture(textureProgram.texture, velocityTexture, 0);
+            webGL2.bindTexture(textureProgram.texture, pbfTexture1, 0);
             gl.clear(gl.COLOR_BUFFER_BIT);
             gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
         }
 
         //Integrate the velocity
-        gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, velocityHelper1Buffer);
+        gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, pbfBuffer3);
         gl.viewport(0, 0, particlesTextureSize, particlesTextureSize);
         gl.useProgram(integrateVelocityProgram);
         gl.uniform1f(integrateVelocityProgram.deltaTime, deltaTime);
-        webGL2.bindTexture(integrateVelocityProgram.positionTexture, positionHelper1Texture, 0);
+        webGL2.bindTexture(integrateVelocityProgram.positionTexture, pbfTexture2, 0);
         webGL2.bindTexture(integrateVelocityProgram.positionOldTexture, positionTexture, 1);
         gl.clear(gl.COLOR_BUFFER_BIT);
         gl.drawArrays(gl.POINTS, 0, totalParticles);
 
 
         //Apply viscosity
-        gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, velocityBuffer);
+        gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, pbfBuffer1);
         gl.viewport(0, 0, particlesTextureSize, particlesTextureSize);
         gl.useProgram(calculateViscosityProgram);
-        webGL2.bindTexture(calculateViscosityProgram.positionTexture, positionHelper1Texture, 0);
-        webGL2.bindTexture(calculateViscosityProgram.velocityTexture, velocityHelper1Texture, 1);
+        webGL2.bindTexture(calculateViscosityProgram.positionTexture, pbfTexture2, 0);
+        webGL2.bindTexture(calculateViscosityProgram.velocityTexture, pbfTexture3, 1);
         webGL2.bindTexture(calculateViscosityProgram.neighbors, neighborhoodTexture, 2);
         gl.uniform3f(calculateViscosityProgram.bucketData, neighborhoodTexture.width, bucketSize, neighborhoodTexture.width / bucketSize);
         gl.uniform1f(calculateViscosityProgram.restDensity, restDensity);
@@ -292,7 +292,7 @@ let render = () => {
         gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, positionBuffer);
         gl.viewport(0, 0, particlesTextureSize, particlesTextureSize);
         gl.useProgram(textureProgram);
-        webGL2.bindTexture(textureProgram.texture, positionHelper1Texture, 0);
+        webGL2.bindTexture(textureProgram.texture, pbfTexture2, 0);
         gl.clear(gl.COLOR_BUFFER_BIT);
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     }
@@ -303,7 +303,7 @@ let render = () => {
     gl.viewport(0, 0, 1024, 1024);
     gl.useProgram(renderParticlesProgram);
     webGL2.bindTexture(renderParticlesProgram.positionTexture, positionTexture, 0);
-    webGL2.bindTexture(renderParticlesProgram.data, velocityHelper1Texture, 1);
+    webGL2.bindTexture(renderParticlesProgram.data, pbfTexture3, 1);
     gl.uniform1f(renderParticlesProgram.scale, bucketSize);
     gl.uniform3f(renderParticlesProgram.bucketData, neighborhoodTexture.width, bucketSize, neighborhoodTexture.width / bucketSize);
     gl.uniformMatrix4fv(renderParticlesProgram.cameraMatrix, false, camera.cameraTransformMatrix);
