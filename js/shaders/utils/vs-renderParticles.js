@@ -25,7 +25,7 @@ void main() {
 
     gl_Position = uPMatrix * uCameraMatrix * vec4(position, 1.);
 
-    gl_PointSize = 4.;
+    gl_PointSize = 2.;
 }
 `;
 
