@@ -99,7 +99,7 @@ for(let i = 0; i < bucketSize; i ++) {
     }
 }
 
-particlesTextureSize = 1024;// Math.ceil(Math.sqrt(totalParticles));
+particlesTextureSize = Math.ceil(Math.sqrt(totalParticles));
 
 //This fills the rest of buffer to generate the texture
 for(let i = totalParticles; i < particlesTextureSize * particlesTextureSize; i ++) {
