@@ -91,10 +91,12 @@ let init = (particlesPosition, particlesVelocity, _bucketSize, _voxelsTextureSiz
 
 
     console.log("===============================");
+    console.log("total particles are: " + totalParticles);
     console.log("particles texture size is: " + particlesTextureSize);
     console.log("neighbors texture size is: " + voxelsTextureSize);
     console.log("GPU memory consumption is: " + Math.ceil(memoryConsumption) + "Mb");
     console.log("===============================");
+
 
     textureProgram                                          = webGL2.generateProgram(vsQuad, fsTextureColor);
     textureProgram.texture                                  = gl.getUniformLocation(textureProgram, "uTexture");
@@ -275,7 +277,6 @@ let updateFrame = (acceleration) => {
 export {
     init,
     updateFrame,
-    positionTexture,
     deltaTime,
     constrainsIterations,
     restDensity,
@@ -285,5 +286,8 @@ export {
     tensilePower,
     tensileDistanceMultiplier,
     viscosity,
-    totalParticles
+    totalParticles,
+    positionTexture,
+    velocityTexture,
+    voxelsTexture
 }
