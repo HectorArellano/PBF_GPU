@@ -20,8 +20,8 @@ import {calculateViscosity}     from './shaders/PBF/vs-calculateViscosity.js'
 let canvas = document.querySelector("#canvas3D");
 
 let particlesTextureSize;
-const bucketSize = 128;
-const voxelsTextureSize = 2048; // Math.ceil(Math.sqrt(Math.pow(bucketSize, 3)));
+const bucketSize = 64;
+const voxelsTextureSize = 512; // Math.ceil(Math.sqrt(Math.pow(bucketSize, 3)));
 
 
 //Shader programs
@@ -54,7 +54,7 @@ let FOV = 30;
 
 
 let deltaTime = 0.01;
-let constrainsIterations = 3;
+let constrainsIterations = 4;
 let restDensity = 1000;
 let searchRadius = 1.8;
 let relaxParameter = .05;  //<<<------------------------------------------- this is very sensible
