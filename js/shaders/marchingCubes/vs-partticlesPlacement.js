@@ -1,10 +1,10 @@
 const vsParticlesPlacement = `#version 300 es
 
 uniform sampler2D uTexturePosition;
-uniform float uScaler;
 uniform float uPhase;
 uniform float uSize;
-uniform vec3 3D;
+uniform vec3 u3D;
+uniform float uParticlesGridScale;
 
 out vec4 colorData;
 
@@ -13,9 +13,9 @@ void main() {
     float textureSize = float(textureSize(uTexturePosition, 0).x);
     float index1D = float(gl_VertexID);
     vec2 index2D = (vec2(mod(index1D, textureSize), floor(index1D / textureSize)) + vec2(0.5)) / textureSize;
-    vec3 position = texture2D(uTexturePosition, index2D).rgb;
+    vec3 position = texture(uTexturePosition, index2D).rgb;
 
-    vec3 gPP = floor(position);
+    vec3 gPP = floor(position * u3D.y / uParticlesGridScale);
     gPP.y -= uPhase;
 
     //The buckets are aligned with the Y axis
