@@ -14,8 +14,8 @@ import {vsQuad}                 from './shaders/utils/vs-quad.js';
 //=======================================================================================================
 
 let canvas = document.querySelector("#canvas3D");
-canvas.width = 2048;
-canvas.height = 1024;
+canvas.width = 1500;
+canvas.height = 750;
 canvas.style.width = String(canvas.width) + "px";
 canvas.style.height = String(canvas.height) + "px";
 webGL2.setContext(canvas);
@@ -40,13 +40,14 @@ let currentFrame = 0;
 let resolution = 128;
 let expandedTexturSize = 2048;
 let compressedTextureSize = 1024;
-let compactTextureSize = 3500;
+let compactTextureSize = 1024;
 let compressedBuckets = 8;
 let expandedBuckets = 16;
 let particleSize = 2;
 let blurSteps = 3;
 let range = 0.5;
 let maxCells = 3;
+let fastNormals = false;
 
 //Generate the position and velocity
 for(let i = 0; i < pbfResolution; i ++) {
@@ -101,12 +102,12 @@ let render = () => {
     PBF.updateFrame(acceleration, deltaTime, constrainsIterations);
 
     //Generate the mesh from the simulation particles
-    Mesher.generateMesh(PBF.positionTexture, PBF.totalParticles, pbfResolution, particleSize, blurSteps, range, maxCells);
+    Mesher.generateMesh(PBF.positionTexture, PBF.totalParticles, pbfResolution, particleSize, blurSteps, range, maxCells, fastNormals);
 
 
     //Render particles
     gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
-    gl.viewport(0, 0, 1024, 1024);
+    gl.viewport(0, 0, 750, 750);
     gl.useProgram(renderParticlesProgram);
     webGL2.bindTexture(renderParticlesProgram.positionTexture, PBF.positionTexture, 0);
     gl.uniform1f(renderParticlesProgram.scale, pbfResolution);
@@ -119,9 +120,9 @@ let render = () => {
 
 
     //Check textures
-    gl.viewport(1024, 0, 1024, 1024);
+    gl.viewport(750, 0, 750, 750);
     gl.useProgram(textureProgram);
-    webGL2.bindTexture(textureProgram.texture, Mesher.tHelper, 0);
+    webGL2.bindTexture(textureProgram.texture, Mesher.tTriangles, 0);
     gl.uniform1i(textureProgram.forceAlpha, true);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
