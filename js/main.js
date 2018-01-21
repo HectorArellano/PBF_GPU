@@ -1,6 +1,7 @@
 import {gl}                     from './utils/webGL2.js';
 import * as webGL2              from './utils/webGL2.js';
 import * as PBF                 from './pbf.js';
+import * as Mesher              from './mesher.js';
 import {Camera}                 from './utils/camera.js';
 import {vsParticles}            from './shaders/utils/vs-renderParticles.js'
 import {fsColor}                from './shaders/utils/fs-simpleColor.js';
@@ -22,14 +23,20 @@ let camera = new Camera(canvas);
 let cameraDistance = 3.5;
 let FOV = 30;
 
-
-let bucketSize = 64;
-let voxelTextureSize = 512;
-let particlesTextureSize = 256;
+//For the Positionn Based Fluids
+let bucketSize = 128;
+let voxelTextureSize = 2048;
+let particlesTextureSize = 1024;
 let particlesPosition = [];
 let particlesVelocity = [];
 let radius = bucketSize * 0.39;
 let currentFrame = 0;
+
+//For the mesher
+let resolution = 128;
+let expandedTexturSize = 2048;
+let compressedTextureSize = 1024;
+let compactTextureSize = 3500;
 
 
 //Generate the position and velocity
@@ -44,7 +51,7 @@ for(let i = 0; i < bucketSize; i ++) {
 
             if(x*x + y*y + z*z < radius * radius && k < bucketSize * 0.5) {
                 particlesPosition.push(i, j, k, 1);
-                particlesVelocity.push(0, -30, 0, 0); //Velocity is zero for all the particles.
+                particlesVelocity.push(0, 0, 0, 0); //Velocity is zero for all the particles.
             }
         }
     }
@@ -61,16 +68,20 @@ renderParticlesProgram.scale                            = gl.getUniformLocation(
 // Simulation and Rendering (Position based fluids)
 //=======================================================================================================
 
+//Initiate the position based fluids solver
 PBF.init(particlesPosition, particlesVelocity, bucketSize, voxelTextureSize, particlesTextureSize);
 particlesPosition = null;
 particlesVelocity = null;
+
+//Initiate the mesher generator
+Mesher.init(resolution, expandedTexturSize, compressedTextureSize, compactTextureSize);
 
 let render = () => {
 
     requestAnimationFrame(render);
 
     camera.updateCamera(FOV, 1, cameraDistance);
-    let acceleration = {x:6 * Math.sin(currentFrame * Math.PI / 180), y:-10,  z:6 * Math.cos(currentFrame * Math.PI / 180)}
+    let acceleration = {x:0* Math.sin(currentFrame * Math.PI / 180), y:-10,  z:0* Math.cos(currentFrame * Math.PI / 180)}
 
     PBF.updateFrame(acceleration);
 

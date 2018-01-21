@@ -106,23 +106,21 @@ void main() {
     float n = length(normal);
     float distance = n -  radius;
 
-    if(distance > 0. && endPosition.y < uBucketData.y * 0.4) {
+    if(distance > 0. ) {
 
-        if(distance < 0.2) {
             normal = normalize(normal);
             endPosition = center + normal * radius;
-        }
 
     }
 
-    //Collision handling
-    vec3 boxSize = vec3(uBucketData.y * 0.48);
-    vec3 xLocal = endPosition - center;
-    vec3 contactPointLocal = min(boxSize, max(-boxSize, xLocal));
-    vec3 contactPoint = contactPointLocal + center;
-    distance = length(contactPoint - particlePosition);
-
-    if(distance > 0.0) endPosition = contactPoint;
+    // //Collision handling
+    // vec3 boxSize = vec3(uBucketData.y * 0.48);
+    // vec3 xLocal = endPosition - center;
+    // vec3 contactPointLocal = min(boxSize, max(-boxSize, xLocal));
+    // vec3 contactPoint = contactPointLocal + center;
+    // distance = length(contactPoint - particlePosition);
+    //
+    // if(distance > 0.0) endPosition = contactPoint;
 
     colorData = vec4(endPosition, 1.);
 }
