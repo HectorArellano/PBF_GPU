@@ -122,7 +122,6 @@ let init = (_resolution, _expandedTextureSize, _compressedTextureSize, _compactT
     fbPyramid = [];
     for (let i = 0; i < Math.ceil(Math.log(_expandedTextureSize) / Math.log(2)); i++) {
         let size = Math.pow(2, i);
-        console.log(size);
         tLevels.push(webGL2.createTexture2D(size, size, gl.RGBA32F, gl.RGBA, gl.NEAREST, gl.NEAREST, gl.FLOAT));
         fbPyramid.push(webGL2.createDrawFramebuffer(tLevels[i]));
     }
@@ -268,9 +267,6 @@ let generateMesh = (positionTexture, totalParticles, particlesGridScale, particl
     gl.uniform3f(marchCaseProgram.gridPartitioning, 1. / expandedTextureSize, resolution, expandedBuckets);
     gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fbMarchingCase);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-
-
-    let activeMCells = Math.ceil(maxCells * expandedTextureSize * expandedTextureSize / 100);
 
 
     //This part set the levels of the pyramid for compaction.

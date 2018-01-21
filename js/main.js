@@ -7,6 +7,8 @@ import {vsParticles}            from './shaders/utils/vs-renderParticles.js'
 import {fsColor}                from './shaders/utils/fs-simpleColor.js';
 import {fsTextureColor}         from './shaders/utils/fs-simpleTexture.js';
 import {vsQuad}                 from './shaders/utils/vs-quad.js';
+import {vsPhongTriangles}       from './shaders/utils/vs-phongTriangles.js';
+import {fsPhongTriangles}       from './shaders/utils/fs-phongTriangles.js';
 
 
 //=======================================================================================================
@@ -14,38 +16,39 @@ import {vsQuad}                 from './shaders/utils/vs-quad.js';
 //=======================================================================================================
 
 let canvas = document.querySelector("#canvas3D");
-canvas.width = 1500;
-canvas.height = 750;
+canvas.height = 800;
+canvas.width = canvas.height * 2;
 canvas.style.width = String(canvas.width) + "px";
 canvas.style.height = String(canvas.height) + "px";
 webGL2.setContext(canvas);
 
 
 let camera = new Camera(canvas);
-let cameraDistance = 3.5;
+let cameraDistance = 2.5;
 let FOV = 30;
 
 //For the Positionn Based Fluids
-let deltaTime = 0.01;
+let updateSimulation = true;
+let deltaTime = 0.005;
 let constrainsIterations = 4;
-let pbfResolution = 128;
-let voxelTextureSize = 2048;
-let particlesTextureSize = 1024;
+let pbfResolution = 256;
+let voxelTextureSize = 4096;
+let particlesTextureSize = 2048;
 let particlesPosition = [];
 let particlesVelocity = [];
-let radius = pbfResolution * 0.39;
+let radius = pbfResolution * 0.49;
 let currentFrame = 0;
 
-//For the mesher
-let resolution = 128;
-let expandedTexturSize = 2048;
-let compressedTextureSize = 1024;
-let compactTextureSize = 1024;
+//Change these values to change marching cubes resolution (128/2048/1024 or 256/4096/2048)
+let resolution = 256;
+let expandedTextureSize = 4096;
+let compressedTextureSize = 2048;
+let compactTextureSize = 3000;
 let compressedBuckets = 8;
 let expandedBuckets = 16;
-let particleSize = 2;
-let blurSteps = 3;
-let range = 0.5;
+let particleSize = 1;
+let blurSteps = 2;
+let range = 0.1;
 let maxCells = 3;
 let fastNormals = false;
 
@@ -59,10 +62,17 @@ for(let i = 0; i < pbfResolution; i ++) {
             let y = j - pbfResolution * 0.5;
             let z = k - pbfResolution * 0.5;
 
-            if(x*x + y*y + z*z < radius * radius && k < pbfResolution * 0.5) {
+            if(x*x + y*y + z*z < radius * radius && j < pbfResolution * 0.3) {
                 particlesPosition.push(i, j, k, 1);
                 particlesVelocity.push(0, 0, 0, 0); //Velocity is zero for all the particles.
             }
+
+            y = j - pbfResolution * 0.7
+            if(x*x + y*y + z*z <20 * 20) {
+                particlesPosition.push(i, j, k, 1);
+                particlesVelocity.push(0, -15, 0, 0); //Velocity is zero for all the particles.
+            }
+
         }
     }
 }
@@ -77,6 +87,13 @@ let textureProgram                                      = webGL2.generateProgram
 textureProgram.texture                                  = gl.getUniformLocation(textureProgram, "uTexture");
 textureProgram.forceAlpha                               = gl.getUniformLocation(textureProgram, "uForceAlpha");
 
+let phongTrianglesProgram                               = webGL2.generateProgram(vsPhongTriangles, fsPhongTriangles);
+phongTrianglesProgram.cameraMatrix                      = gl.getUniformLocation(phongTrianglesProgram, "uCameraMatrix");
+phongTrianglesProgram.perspectiveMatrix                 = gl.getUniformLocation(phongTrianglesProgram, "uPMatrix");
+phongTrianglesProgram.textureTriangles                  = gl.getUniformLocation(phongTrianglesProgram, "uTT");
+phongTrianglesProgram.textureNormals                    = gl.getUniformLocation(phongTrianglesProgram, "uTN");
+phongTrianglesProgram.cameraPosition                    = gl.getUniformLocation(phongTrianglesProgram, "uEye");
+
 
 //=======================================================================================================
 // Simulation and Rendering (Position based fluids)
@@ -88,7 +105,7 @@ particlesPosition = null;
 particlesVelocity = null;
 
 //Initiate the mesher generator
-Mesher.init(resolution, expandedTexturSize, compressedTextureSize, compactTextureSize, compressedBuckets, expandedBuckets);
+Mesher.init(resolution, expandedTextureSize, compressedTextureSize, compactTextureSize, compressedBuckets, expandedBuckets);
 
 let render = () => {
 
@@ -98,16 +115,19 @@ let render = () => {
     let acceleration = {x:0* Math.sin(currentFrame * Math.PI / 180), y:-10,  z:0* Math.cos(currentFrame * Math.PI / 180)}
 
 
-    //Update the simulation
-    PBF.updateFrame(acceleration, deltaTime, constrainsIterations);
 
-    //Generate the mesh from the simulation particles
-    Mesher.generateMesh(PBF.positionTexture, PBF.totalParticles, pbfResolution, particleSize, blurSteps, range, maxCells, fastNormals);
+    if(updateSimulation) {
+        //Update the simulation
+        PBF.updateFrame(acceleration, deltaTime, constrainsIterations);
+
+        //Generate the mesh from the simulation particles
+        if(currentFrame % 2 ==0) Mesher.generateMesh(PBF.positionTexture, PBF.totalParticles, pbfResolution, particleSize, blurSteps, range, maxCells, fastNormals);
+    }
 
 
     //Render particles
     gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
-    gl.viewport(0, 0, 750, 750);
+    gl.viewport(0, 0, canvas.height, canvas.height);
     gl.useProgram(renderParticlesProgram);
     webGL2.bindTexture(renderParticlesProgram.positionTexture, PBF.positionTexture, 0);
     gl.uniform1f(renderParticlesProgram.scale, pbfResolution);
@@ -119,16 +139,27 @@ let render = () => {
     gl.disable(gl.DEPTH_TEST);
 
 
-    //Check textures
-    gl.viewport(750, 0, 750, 750);
-    gl.useProgram(textureProgram);
-    webGL2.bindTexture(textureProgram.texture, Mesher.tTriangles, 0);
-    gl.uniform1i(textureProgram.forceAlpha, true);
-    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    let activeMCells = Math.ceil(maxCells * expandedTextureSize * expandedTextureSize / 100);
+
+    //Render the triangles
+    gl.useProgram(phongTrianglesProgram);
+    gl.viewport(canvas.height, 0, canvas.height, canvas.height);
+    webGL2.bindTexture(phongTrianglesProgram.textureTriangles, Mesher.tTriangles, 0);
+    webGL2.bindTexture(phongTrianglesProgram.textureNormals, Mesher.tNormals, 1);
+    gl.uniformMatrix4fv(phongTrianglesProgram.cameraMatrix, false, camera.cameraTransformMatrix);
+    gl.uniformMatrix4fv(phongTrianglesProgram.perspectiveMatrix, false, camera.perspectiveMatrix);
+    gl.uniform3f(phongTrianglesProgram.cameraPosition, camera.position[0], camera.position[1], camera.position[2]);
+    gl.enable(gl.DEPTH_TEST);
+    gl.drawArrays(gl.TRIANGLES, 0, 15 * activeMCells);
+    gl.disable(gl.DEPTH_TEST);
 
 
     currentFrame ++;
 
 };
+
+document.body.addEventListener("keypress", ()=> {
+    updateSimulation = !updateSimulation;
+})
 
 render();
