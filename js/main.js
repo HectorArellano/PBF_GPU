@@ -46,6 +46,7 @@ let expandedBuckets = 16;
 let particleSize = 2;
 let blurSteps = 3;
 let range = 0.5;
+let maxCells = 3;
 
 //Generate the position and velocity
 for(let i = 0; i < pbfResolution; i ++) {
@@ -95,11 +96,13 @@ let render = () => {
     camera.updateCamera(FOV, 1, cameraDistance);
     let acceleration = {x:0* Math.sin(currentFrame * Math.PI / 180), y:-10,  z:0* Math.cos(currentFrame * Math.PI / 180)}
 
+
     //Update the simulation
     PBF.updateFrame(acceleration, deltaTime, constrainsIterations);
 
     //Generate the mesh from the simulation particles
-    Mesher.generateMesh(PBF.positionTexture, PBF.totalParticles, pbfResolution, particleSize, blurSteps, range);
+    Mesher.generateMesh(PBF.positionTexture, PBF.totalParticles, pbfResolution, particleSize, blurSteps, range, maxCells);
+
 
     //Render particles
     gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
@@ -114,12 +117,14 @@ let render = () => {
     gl.drawArrays(gl.POINTS, 0, PBF.totalParticles);
     gl.disable(gl.DEPTH_TEST);
 
+
     //Check textures
     gl.viewport(1024, 0, 1024, 1024);
     gl.useProgram(textureProgram);
-    webGL2.bindTexture(textureProgram.texture, Mesher.tMarchingCase, 0);
+    webGL2.bindTexture(textureProgram.texture, Mesher.tHelper, 0);
     gl.uniform1i(textureProgram.forceAlpha, true);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
 
     currentFrame ++;
 

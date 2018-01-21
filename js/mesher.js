@@ -5,12 +5,14 @@ import  {ti5, trianglesOnVoxels}    from './utils/marchingCubesTables.js';
 //Shaders
 import {vsQuad}                     from './shaders/utils/vs-quad.js';
 import {fsColor}                    from './shaders/utils/fs-simpleColor.js';
+import {fsTextureColor}             from './shaders/utils/fs-simpleTexture.js';
 import {vsParticlesPlacement}       from './shaders/marchingCubes/vs-partticlesPlacement.js';
 import {blur2D}                     from './shaders/marchingCubes/fs-blu2D.js';
 import {blurDepth}                  from './shaders/marchingCubes/fs-blurDepth.js';
 import {getCorners}                 from './shaders/marchingCubes/fs-getCorners.js';
 import {splitChannels}              from './shaders/marchingCubes/fs-splitChannels.js';
 import {marchCase}                  from './shaders/marchingCubes/fs-marchCase.js';
+import {generatePyramid}            from './shaders/marchingCubes/fs-generatePyramid.js';
 
 
 //=======================================================================================================
@@ -25,8 +27,8 @@ let compressedTextureSize;
 let compactTextureSize;
 let compressedBuckets;
 let expandedBuckets;
-let amountOfTrianglesTextureSize = 16;
-let indexesTextureSize = 64;
+const amountOfTrianglesTextureSize = 16;
+const indexesTextureSize = 64;
 
 
 //Textures required
@@ -57,7 +59,12 @@ let setVoxelsProgram,
     blurDepthProgram,
     getCornersProgram,
     marchCaseProgram,
-    splitChannelsProgram;
+    splitChannelsProgram,
+    generatePyramidProgram,
+    textureProgram;
+
+//For the pyramid generation (stream compaction)
+let tLevels, fbPyramid;
 
 let tInV = [];
 for (let i = 0; i <trianglesOnVoxels.length; i ++) tInV.push(trianglesOnVoxels[i].length);
@@ -109,7 +116,15 @@ let init = (_resolution, _expandedTextureSize, _compressedTextureSize, _compactT
     fbMarchingCase =               webGL2.createDrawFramebuffer(tMarchingCase);
     fbTrianglesMRT =               webGL2.createDrawFramebuffer([tTriangles, tNormals, tVoxelsOffsets]);
 
-
+    tLevels = [];
+    fbPyramid = [];
+    for (let i = 0; i < Math.ceil(Math.log(_expandedTextureSize) / Math.log(2)); i++) {
+        let size = Math.pow(2, i);
+        console.log(size);
+        tLevels.push(webGL2.createTexture2D(size, size, gl.RGBA32F, gl.RGBA, gl.NEAREST, gl.NEAREST, gl.FLOAT));
+        fbPyramid.push(webGL2.createDrawFramebuffer(tLevels[i]));
+    }
+    
     arrayTriIndex = null;
     arrayTriVoxel = null;
 
@@ -147,10 +162,19 @@ let init = (_resolution, _expandedTextureSize, _compressedTextureSize, _compactT
     marchCaseProgram.range =                    gl.getUniformLocation(marchCaseProgram, "uRange");
     marchCaseProgram.gridPartitioning =         gl.getUniformLocation(marchCaseProgram, "u3D");
 
+    generatePyramidProgram =                    webGL2.generateProgram(vsQuad, generatePyramid);
+    generatePyramidProgram.potentialTexture =   gl.getUniformLocation(generatePyramidProgram, "uPyT");
+    generatePyramidProgram.size =               gl.getUniformLocation(generatePyramidProgram, "uSize");
+
+    textureProgram =                            webGL2.generateProgram(vsQuad, fsTextureColor);
+    textureProgram.texture =                    gl.getUniformLocation(textureProgram, "uTexture");
+    textureProgram.forceAlpha =                 gl.getUniformLocation(textureProgram, "uForceAlpha");
+
+
 }
 
 //Function used to generate a 3D mesh using the marching cubes algorithm
-let generateMesh = (positionTexture, totalParticles, particlesGridScale, particlesSize, blurSteps, range) => {
+let generateMesh = (positionTexture, totalParticles, particlesGridScale, particlesSize, blurSteps, range, maxCells) => {
 
     gl.blendEquation(gl.FUNC_ADD);
     gl.blendFunc(gl.ONE, gl.ONE);
@@ -230,6 +254,37 @@ let generateMesh = (positionTexture, totalParticles, particlesGridScale, particl
     gl.uniform3f(marchCaseProgram.gridPartitioning, 1. / expandedTextureSize, resolution, expandedBuckets);
     gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fbMarchingCase);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+
+    let activeMCells = Math.ceil(maxCells * expandedTextureSize * expandedTextureSize / 100);
+
+
+    //This part set the levels of the pyramid for compaction.
+    let levels = Math.ceil(Math.log(expandedTextureSize) / Math.log(2));
+    gl.useProgram(generatePyramidProgram);
+    for (let i = 0; i < levels; i++) {
+        let size = Math.pow(2, levels - 1 - i);
+        gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fbPyramid[levels - i - 1]);
+        gl.viewport(0, 0, size, size);
+        gl.uniform1f(generatePyramidProgram.size, Math.pow(2, i + 1) / expandedTextureSize);
+        webGL2.bindTexture(generatePyramidProgram.potentialTexture, i == 0 ? tMarchingCase : tLevels[levels - i], 0);
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    }
+
+
+    //Copy the pyramid partial result into the helper texture.
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fbHelper);
+    gl.clearColor(0, 0, 0, 0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    let offset = 0;
+    for(let i = 0; i < levels; i ++) {
+        let size = Math.pow(2, levels - 1 - i);
+        gl.viewport(offset, 0, size, size);
+        gl.useProgram(textureProgram);
+        webGL2.bindTexture(textureProgram.texture, tLevels[levels - i - 1], 0);
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+        offset += size;
+    }
     
 }
 
@@ -244,4 +299,5 @@ export {init,
         t3DExpanded,
         tMarchingCase,
         tAmountOfTrianglesPerIndex,
-        tIndexes}
+        tIndexes,
+        tLevels}

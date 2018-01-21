@@ -83,18 +83,12 @@ let init = (particlesPosition, particlesVelocity, _bucketSize, _voxelsTextureSiz
         particlesVelocity.push(0, 0, 0, 0);
     }
 
-    let memoryConsumption = (4 * particlesTextureSize * particlesTextureSize + voxelsTextureSize * voxelsTextureSize)* 32 * 4; //bits
-    memoryConsumption /= 8; //bytes
-    memoryConsumption /= 1000000 //megabites
-
-
     console.log("===============================");
+    console.log("Position Based Fluids simulator:")
     console.log("total particles are: " + totalParticles);
     console.log("particles texture size is: " + particlesTextureSize);
     console.log("neighbors texture size is: " + voxelsTextureSize);
-    console.log("GPU memory consumption is: " + Math.ceil(memoryConsumption) + "Mb");
     console.log("===============================");
-
 
     textureProgram                                          = webGL2.generateProgram(vsQuad, fsTextureColor);
     textureProgram.texture                                  = gl.getUniformLocation(textureProgram, "uTexture");
