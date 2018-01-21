@@ -47,8 +47,6 @@ let positionBuffer,
     voxelsBuffer;
 
 
-let deltaTime = 0.01;
-let constrainsIterations = 4;
 let restDensity = 1000;
 let searchRadius = 1.8;
 let relaxParameter = .05;  //<<<------------------------------------------- this is very sensible
@@ -169,7 +167,7 @@ let init = (particlesPosition, particlesVelocity, _bucketSize, _voxelsTextureSiz
 // Simulation and Rendering (Particle Based Fluids
 //=======================================================================================================
 
-let updateFrame = (acceleration) => {
+let updateFrame = (acceleration, deltaTime, constrainsIterations) => {
 
     //Apply external forces (gravity)
     gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, pbfBuffer1);

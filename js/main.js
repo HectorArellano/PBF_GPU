@@ -26,6 +26,8 @@ let cameraDistance = 3.5;
 let FOV = 30;
 
 //For the Positionn Based Fluids
+let deltaTime = 0.01;
+let constrainsIterations = 4;
 let pbfResolution = 128;
 let voxelTextureSize = 2048;
 let particlesTextureSize = 1024;
@@ -43,7 +45,7 @@ let compressedBuckets = 8;
 let expandedBuckets = 16;
 let particleSize = 2;
 let blurSteps = 3;
-
+let range = 0.5;
 
 //Generate the position and velocity
 for(let i = 0; i < pbfResolution; i ++) {
@@ -94,10 +96,10 @@ let render = () => {
     let acceleration = {x:0* Math.sin(currentFrame * Math.PI / 180), y:-10,  z:0* Math.cos(currentFrame * Math.PI / 180)}
 
     //Update the simulation
-    PBF.updateFrame(acceleration);
+    PBF.updateFrame(acceleration, deltaTime, constrainsIterations);
 
     //Generate the mesh from the simulation particles
-    Mesher.generateMesh(PBF.positionTexture, PBF.totalParticles, pbfResolution, particleSize, blurSteps);
+    Mesher.generateMesh(PBF.positionTexture, PBF.totalParticles, pbfResolution, particleSize, blurSteps, range);
 
     //Render particles
     gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
@@ -115,7 +117,7 @@ let render = () => {
     //Check textures
     gl.viewport(1024, 0, 1024, 1024);
     gl.useProgram(textureProgram);
-    webGL2.bindTexture(textureProgram.texture, Mesher.tVoxels2, 0);
+    webGL2.bindTexture(textureProgram.texture, Mesher.tMarchingCase, 0);
     gl.uniform1i(textureProgram.forceAlpha, true);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 

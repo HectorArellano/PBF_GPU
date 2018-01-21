@@ -8,6 +8,8 @@ import {vsParticlesPlacement}   from './shaders/marchingCubes/vs-partticlesPlace
 import {blur2D}                 from './shaders/marchingCubes/fs-blu2D.js';
 import {blurDepth}              from './shaders/marchingCubes/fs-blurDepth.js';
 import {getCorners}             from './shaders/marchingCubes/fs-getCorners.js';
+import {splitChannels}          from './shaders/marchingCubes/fs-splitChannels.js';
+import {marchCase}              from './shaders/marchingCubes/fs-marchCase.js';
 
 
 //=======================================================================================================
@@ -52,7 +54,9 @@ let fbVoxels1,
 let setVoxelsProgram,
     blur2DProgram,
     blurDepthProgram,
-    getCornersProgram;
+    getCornersProgram,
+    marchCaseProgram,
+    splitChannelsProgram;
 
 //Indexes for the marching cubes
 
@@ -117,37 +121,51 @@ let init = (_resolution, _expandedTextureSize, _compressedTextureSize, _compactT
 
 
     //programs generation
-    setVoxelsProgram =                      webGL2.generateProgram(vsParticlesPlacement, fsColor);
-    setVoxelsProgram.positionTexture =      gl.getUniformLocation(setVoxelsProgram, "uTexturePosition");
-    setVoxelsProgram.phase =                gl.getUniformLocation(setVoxelsProgram, "uPhase");
-    setVoxelsProgram.particleSize =         gl.getUniformLocation(setVoxelsProgram, "uSize");
-    setVoxelsProgram.gridPartitioning =     gl.getUniformLocation(setVoxelsProgram, "u3D");
-    setVoxelsProgram.particlesGridScale =   gl.getUniformLocation(setVoxelsProgram, "uParticlesGridScale");
+    setVoxelsProgram =                          webGL2.generateProgram(vsParticlesPlacement, fsColor);
+    setVoxelsProgram.positionTexture =          gl.getUniformLocation(setVoxelsProgram, "uTexturePosition");
+    setVoxelsProgram.phase =                    gl.getUniformLocation(setVoxelsProgram, "uPhase");
+    setVoxelsProgram.particleSize =             gl.getUniformLocation(setVoxelsProgram, "uSize");
+    setVoxelsProgram.gridPartitioning =         gl.getUniformLocation(setVoxelsProgram, "u3D");
+    setVoxelsProgram.particlesGridScale =       gl.getUniformLocation(setVoxelsProgram, "uParticlesGridScale");
 
-    blur2DProgram =                         webGL2.generateProgram(vsQuad, blur2D);
-    blur2DProgram.dataTexture =             gl.getUniformLocation(blur2DProgram, "uDT");
-    blur2DProgram.axis =                    gl.getUniformLocation(blur2DProgram, "uAxis");
-    blur2DProgram.steps =                   gl.getUniformLocation(blur2DProgram, "uSteps");
+    blur2DProgram =                             webGL2.generateProgram(vsQuad, blur2D);
+    blur2DProgram.dataTexture =                 gl.getUniformLocation(blur2DProgram, "uDT");
+    blur2DProgram.axis =                        gl.getUniformLocation(blur2DProgram, "uAxis");
+    blur2DProgram.steps =                       gl.getUniformLocation(blur2DProgram, "uSteps");
 
-    blurDepthProgram =                      webGL2.generateProgram(vsQuad, blurDepth);
-    blurDepthProgram.dataTexture =          gl.getUniformLocation(blurDepthProgram, "uDT");
-    blurDepthProgram.steps =                gl.getUniformLocation(blurDepthProgram, "uSteps");
-    blurDepthProgram.gridPartitioning =     gl.getUniformLocation(blurDepthProgram, "u3D");
+    blurDepthProgram =                          webGL2.generateProgram(vsQuad, blurDepth);
+    blurDepthProgram.dataTexture =              gl.getUniformLocation(blurDepthProgram, "uDT");
+    blurDepthProgram.steps =                    gl.getUniformLocation(blurDepthProgram, "uSteps");
+    blurDepthProgram.gridPartitioning =         gl.getUniformLocation(blurDepthProgram, "u3D");
 
-    getCornersProgram =                      webGL2.generateProgram(vsQuad, getCorners);
-    getCornersProgram.dataTexture =         gl.getUniformLocation(getCornersProgram, "uDataTexture");
-    getCornersProgram.gridPartitioning =    gl.getUniformLocation(getCornersProgram, "u3D");
+    getCornersProgram =                         webGL2.generateProgram(vsQuad, getCorners);
+    getCornersProgram.dataTexture =             gl.getUniformLocation(getCornersProgram, "uDataTexture");
+    getCornersProgram.gridPartitioning =        gl.getUniformLocation(getCornersProgram, "u3D");
+
+    splitChannelsProgram =                      webGL2.generateProgram(vsQuad, splitChannels);
+    splitChannelsProgram.dataTexture =          gl.getUniformLocation(splitChannelsProgram, "uDataTexture");
+    splitChannelsProgram.gridPartitioningLow =  gl.getUniformLocation(splitChannelsProgram, "u3D_l");
+    splitChannelsProgram.gridPartitioningHigh = gl.getUniformLocation(splitChannelsProgram, "u3D_h");
+
+    marchCaseProgram =                          webGL2.generateProgram(vsQuad, marchCase);
+    marchCaseProgram.dataTexture =              gl.getUniformLocation(marchCaseProgram, "uDT");
+    marchCaseProgram.trianglesPerIndexTexture = gl.getUniformLocation(marchCaseProgram, "uTrianglesIndex");
+    marchCaseProgram.range =                    gl.getUniformLocation(marchCaseProgram, "uRange");
+    marchCaseProgram.gridPartitioning =         gl.getUniformLocation(marchCaseProgram, "u3D");
 
 }
 
 //Function used to generate a 3D mesh using the marching cubes algorithm
-let generateMesh = (positionTexture, totalParticles, particlesGridScale, particlesSize, blurSteps) => {
+let generateMesh = (positionTexture, totalParticles, particlesGridScale, particlesSize, blurSteps, range) => {
 
     gl.blendEquation(gl.FUNC_ADD);
     gl.blendFunc(gl.ONE, gl.ONE);
 
+
+    //Working with the compressed texture size
     gl.viewport(0, 0, compressedTextureSize, compressedTextureSize);
-    
+
+
     //Place particles in the voxel space
     gl.useProgram(setVoxelsProgram);
     webGL2.bindTexture(setVoxelsProgram.positionTexture, positionTexture, 0);
@@ -191,9 +209,32 @@ let generateMesh = (positionTexture, totalParticles, particlesGridScale, particl
     
     //Evaluate the corners values for the potentials
     gl.useProgram(getCornersProgram);
-    gl.bindFramebuffer(gl.FRAMEBUFFER, fbVoxels1);
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fbVoxels1);
     webGL2.bindTexture(getCornersProgram.dataTexture, tVoxels2, 0);
     gl.uniform3f(getCornersProgram.gridPartitioning, 1. / compressedTextureSize, resolution, compressedBuckets);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+
+    //Working with the expanded texture size
+    gl.viewport(0, 0, expandedTextureSize, expandedTextureSize);
+
+
+    //Split the channels for expansion of the potential
+    gl.useProgram(splitChannelsProgram);
+    webGL2.bindTexture(splitChannelsProgram.dataTexture, tVoxels1, 0);
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fb3DExpanded);
+    gl.uniform3f(splitChannelsProgram.gridPartitioningLow, 1. / compressedTextureSize, resolution, compressedBuckets);
+    gl.uniform3f(splitChannelsProgram.gridPartitioningHigh, 1. / expandedTextureSize, resolution, expandedBuckets);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+    
+    //Evaluate the cells active for the marching cubes
+    gl.useProgram(marchCaseProgram);
+    webGL2.bindTexture(marchCaseProgram.dataTexture, t3DExpanded, 0);
+    webGL2.bindTexture(marchCaseProgram.trianglesPerIndexTexture, tAmountOfTrianglesPerIndex, 1);
+    gl.uniform1f(marchCaseProgram.range, range);
+    gl.uniform3f(marchCaseProgram.gridPartitioning, 1. / expandedTextureSize, resolution, expandedBuckets);
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fbMarchingCase);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     
 }
