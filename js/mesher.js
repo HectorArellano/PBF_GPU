@@ -7,6 +7,7 @@ import {fsColor}                from './shaders/utils/fs-simpleColor.js';
 import {vsParticlesPlacement}   from './shaders/marchingCubes/vs-partticlesPlacement.js';
 import {blur2D}                 from './shaders/marchingCubes/fs-blu2D.js';
 import {blurDepth}              from './shaders/marchingCubes/fs-blurDepth.js';
+import {getCorners}             from './shaders/marchingCubes/fs-getCorners.js';
 
 
 //=======================================================================================================
@@ -50,7 +51,8 @@ let fbVoxels1,
 //Shader programs
 let setVoxelsProgram,
     blur2DProgram,
-    blurDepthProgram;
+    blurDepthProgram,
+    getCornersProgram;
 
 //Indexes for the marching cubes
 
@@ -74,7 +76,7 @@ for(let i = 0; i < indexesTextureSize * indexesTextureSize; i ++) {
 //Buffers for positions in a 256 texture, and triangles in voxel.
 let arrayTriVoxel = [];
 for(let i = 0; i < 256; i++) {
-    var u = tInV[i] / 3;
+    let u = tInV[i] / 3;
     arrayTriVoxel.push(u, u, u, 1);
 }
 
@@ -132,6 +134,10 @@ let init = (_resolution, _expandedTextureSize, _compressedTextureSize, _compactT
     blurDepthProgram.steps =                gl.getUniformLocation(blurDepthProgram, "uSteps");
     blurDepthProgram.gridPartitioning =     gl.getUniformLocation(blurDepthProgram, "u3D");
 
+    getCornersProgram =                      webGL2.generateProgram(vsQuad, getCorners);
+    getCornersProgram.dataTexture =         gl.getUniformLocation(getCornersProgram, "uDataTexture");
+    getCornersProgram.gridPartitioning =    gl.getUniformLocation(getCornersProgram, "u3D");
+
 }
 
 //Function used to generate a 3D mesh using the marching cubes algorithm
@@ -152,13 +158,14 @@ let generateMesh = (positionTexture, totalParticles, particlesGridScale, particl
     gl.clear(gl.COLOR_BUFFER_BIT);
     gl.enable(gl.BLEND);
 
-    for (var i = 0; i < particlesSize; i++) {
+    for (let i = 0; i < particlesSize; i++) {
         gl.uniform1f(setVoxelsProgram.phase, i);
         gl.drawArrays(gl.POINTS, 0, totalParticles);
     }
 
     gl.disable(gl.BLEND);
 
+    
     //Use a 3D blur for the potential generation.
     let blurXY = (buffer, texture, axis) => {
         gl.uniform2fv(blur2DProgram.axis, axis);
@@ -179,6 +186,14 @@ let generateMesh = (positionTexture, totalParticles, particlesGridScale, particl
     gl.uniform3f(blurDepthProgram.gridPartitioning, 1. / compressedTextureSize, resolution, compressedBuckets);
     gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fbVoxels2);
     gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+    
+    //Evaluate the corners values for the potentials
+    gl.useProgram(getCornersProgram);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fbVoxels1);
+    webGL2.bindTexture(getCornersProgram.dataTexture, tVoxels2, 0);
+    gl.uniform3f(getCornersProgram.gridPartitioning, 1. / compressedTextureSize, resolution, compressedBuckets);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     
 }
