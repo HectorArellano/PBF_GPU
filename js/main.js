@@ -115,7 +115,6 @@ let render = () => {
     let acceleration = {x:0* Math.sin(currentFrame * Math.PI / 180), y:-10,  z:0* Math.cos(currentFrame * Math.PI / 180)}
 
 
-
     if(updateSimulation) {
         //Update the simulation
         PBF.updateFrame(acceleration, deltaTime, constrainsIterations);
@@ -140,6 +139,7 @@ let render = () => {
 
 
     let activeMCells = Math.ceil(maxCells * expandedTextureSize * expandedTextureSize / 100);
+
 
     //Render the triangles
     gl.useProgram(phongTrianglesProgram);
