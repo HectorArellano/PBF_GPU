@@ -11,6 +11,9 @@ import {highResGrid}            from './shaders/raytracer/vs-highResGrid.js';
 import {lowResGrid}             from './shaders/raytracer/vs-lowResGrid.js';
 import {vsDeferredTriangles}    from './shaders/raytracer/vs-deferredTriangles.js';
 import {fsDeferredTriangles}    from './shaders/raytracer/fs-deferredTriangles.js';
+import {floorShader}            from './shaders/raytracer/fs-floor.js';
+import {vsFloorShadows}         from './shaders/raytracer/vs-floorShadows.js';
+import {fsFloorShadows}         from './shaders/raytracer/fs-floorShadows.js';
 
 //=======================================================================================================
 // Variables & Constants
@@ -18,7 +21,7 @@ import {fsDeferredTriangles}    from './shaders/raytracer/fs-deferredTriangles.j
 
 let canvas = document.querySelector("#canvas3D");
 canvas.height = 1000;
-canvas.width = canvas.height * 2;
+canvas.width = canvas.height * 2.5;
 canvas.style.width = String(canvas.width) + "px";
 canvas.style.height = String(canvas.height) + "px";
 webGL2.setContext(canvas);
@@ -53,24 +56,68 @@ let maxCells = 3.5;
 let fastNormals = false;
 
 //For the raytracer
-let lowResolutionTextureSize =     256;
-let lowGridPartitions =            32;
-let lowSideBuckets =               8;
-let sceneSize =                    1024;       //Requires to be a power of two for mip mapping
+let lowResolutionTextureSize = 256;
+let lowGridPartitions = 32;
+let lowSideBuckets = 8;
+let sceneSize = 1024;       //Requires to be a power of two for mip mapping
+let floorTextureSize = 2048;
+let floorScale = 5;
 
+let lockCamera = false;
+let refraction = 1.4;
+let maxIterations = 600.;
+let refractions = 7;
+let reflections = 3;
+let maxStepsPerBounce = 600;
+let screenResolution = 4;
+let absorptionColor = [46, 46, 46];
+let dispersion = 0.03;
+let energyDecay = 0;
+let distanceAbsorptionScale = 6;
+let blurShadows = 30;
+
+let kS = 0.;
+let kD = 0.;
+let kA = 0.;
+let shinny = 60;
+
+let lightAlpha = 36;
+let lightBeta = 0;
+let lightIntensity = 2.5;
+let lightDistance = 3;
+let backgroundColor = 0.65;
+
+let photonTextureSize = 3;
+let photonSize = 2;
+let photonEnergy = 0.2;
+let reflectionPhotons = 0.;
+let photonsToEmit = 1;
+let photonSteps = 1;
+let radianceRadius = 3.6;
+let radiancePower = 0.19;
+
+let rtCaustics = false;
+let calculateShadows = true;
+let calculateCaustics = false;
+let shadowIntensity = 1;
+
+let killRay = 0.02;
+let disableAcceleration = false;
+let lightColor = [255, 255, 255];
+let materialColor = [255, 255, 255];
 
 let radius = pbfResolution * 0.45;
 //Generate the position and velocity
-for(let i = 0; i < pbfResolution; i ++) {
-    for(let j = 0; j < pbfResolution; j ++) {
-        for(let k = 0; k < pbfResolution; k ++) {
+for (let i = 0; i < pbfResolution; i++) {
+    for (let j = 0; j < pbfResolution; j++) {
+        for (let k = 0; k < pbfResolution; k++) {
 
             //Condition for the particle position and existence
             let x = i - pbfResolution * 0.5;
             let y = j - pbfResolution * 0.5;
             let z = k - pbfResolution * 0.5;
 
-            if(x*x + y*y + z*z < radius * radius && k < pbfResolution * 0.4) {
+            if (x * x + y * y + z * z < radius * radius && k < pbfResolution * 0.4) {
                 particlesPosition.push(i, j, k, 1);
                 particlesVelocity.push(0, 0, 0, 0); //Velocity is zero for all the particles.
             }
@@ -79,48 +126,88 @@ for(let i = 0; i < pbfResolution; i ++) {
 }
 
 
-//Shader programs
-let renderParticlesProgram                              = webGL2.generateProgram(vsParticles, fsColor);
-renderParticlesProgram.positionTexture                  = gl.getUniformLocation(renderParticlesProgram, "uTexturePosition");
-renderParticlesProgram.cameraMatrix                     = gl.getUniformLocation(renderParticlesProgram, "uCameraMatrix");
-renderParticlesProgram.perspectiveMatrix                = gl.getUniformLocation(renderParticlesProgram, "uPMatrix");
-renderParticlesProgram.scale                            = gl.getUniformLocation(renderParticlesProgram, "uScale");
+//=======================================================================================================
+// Shader programs
+//=======================================================================================================
 
-let textureProgram                                      = webGL2.generateProgram(vsQuad, fsTextureColor);
-textureProgram.texture                                  = gl.getUniformLocation(textureProgram, "uTexture");
-textureProgram.forceAlpha                               = gl.getUniformLocation(textureProgram, "uForceAlpha");
+let renderParticlesProgram = webGL2.generateProgram(vsParticles, fsColor);
+renderParticlesProgram.positionTexture = gl.getUniformLocation(renderParticlesProgram, "uTexturePosition");
+renderParticlesProgram.cameraMatrix = gl.getUniformLocation(renderParticlesProgram, "uCameraMatrix");
+renderParticlesProgram.perspectiveMatrix = gl.getUniformLocation(renderParticlesProgram, "uPMatrix");
+renderParticlesProgram.scale = gl.getUniformLocation(renderParticlesProgram, "uScale");
 
-let highResGridProgram                                  = webGL2.generateProgram(highResGrid, fsColor);
-highResGridProgram.verticesTexture                      = gl.getUniformLocation(highResGridProgram, "uVoxels");
+let textureProgram = webGL2.generateProgram(vsQuad, fsTextureColor);
+textureProgram.texture = gl.getUniformLocation(textureProgram, "uTexture");
+textureProgram.forceAlpha = gl.getUniformLocation(textureProgram, "uForceAlpha");
 
-let lowResGridProgram                                   = webGL2.generateProgram(lowResGrid, fsColor);
-lowResGridProgram.vertex2DIndex                         = gl.getAttribLocation(lowResGridProgram, "aV2I");
-lowResGridProgram.gridPartitioning                      = gl.getUniformLocation(lowResGridProgram, "uTexture3D");
-lowResGridProgram.positionTexture                       = gl.getUniformLocation(lowResGridProgram, "uPT");
+let highResGridProgram = webGL2.generateProgram(highResGrid, fsColor);
+highResGridProgram.verticesTexture = gl.getUniformLocation(highResGridProgram, "uVoxels");
 
-let deferredProgram                                     = webGL2.generateProgram(vsDeferredTriangles, fsDeferredTriangles);
-deferredProgram.vertexRepet                             = gl.getAttribLocation(deferredProgram, "aVJ");
-deferredProgram.cameraMatrix                            = gl.getUniformLocation(deferredProgram, "uCameraMatrix");
-deferredProgram.perspectiveMatrix                       = gl.getUniformLocation(deferredProgram, "uPMatrix");
-deferredProgram.textureTriangles                        = gl.getUniformLocation(deferredProgram, "uTT");
-deferredProgram.textureNormals                          = gl.getUniformLocation(deferredProgram, "uTN");
+let lowResGridProgram = webGL2.generateProgram(lowResGrid, fsColor);
+lowResGridProgram.vertex2DIndex = gl.getAttribLocation(lowResGridProgram, "aV2I");
+lowResGridProgram.gridPartitioning = gl.getUniformLocation(lowResGridProgram, "uTexture3D");
+lowResGridProgram.positionTexture = gl.getUniformLocation(lowResGridProgram, "uPT");
+
+let deferredProgram = webGL2.generateProgram(vsDeferredTriangles, fsDeferredTriangles);
+deferredProgram.vertexRepet = gl.getAttribLocation(deferredProgram, "aVJ");
+deferredProgram.cameraMatrix = gl.getUniformLocation(deferredProgram, "uCameraMatrix");
+deferredProgram.perspectiveMatrix = gl.getUniformLocation(deferredProgram, "uPMatrix");
+deferredProgram.textureTriangles = gl.getUniformLocation(deferredProgram, "uTT");
+deferredProgram.textureNormals = gl.getUniformLocation(deferredProgram, "uTN");
+
+let floorProgram = webGL2.generateProgram(vsQuad, floorShader);
+floorProgram.backgroundColor = gl.getUniformLocation(floorProgram, "uBg");
+
+let floorShadowsProgram = webGL2.generateProgram(vsFloorShadows, fsFloorShadows);
+floorShadowsProgram.textureTriangles = gl.getUniformLocation(floorShadowsProgram, "uTT");
+floorShadowsProgram.textureNormals = gl.getUniformLocation(floorShadowsProgram, "uTN");
+floorShadowsProgram.iterations = gl.getUniformLocation(floorShadowsProgram, "uMaxSteps");
+floorShadowsProgram.maxStepsPerBounce = gl.getUniformLocation(floorShadowsProgram, "uMaxBounceSteps");
+floorShadowsProgram.scaler = gl.getUniformLocation(floorShadowsProgram, "uScaler");
+floorShadowsProgram.potentialTexture = gl.getUniformLocation(floorShadowsProgram, "uPot");
+floorShadowsProgram.texture3DData = gl.getUniformLocation(floorShadowsProgram, "uTexture3D");
+floorShadowsProgram.lowResPotential = gl.getUniformLocation(floorShadowsProgram, "uLowRes");
+floorShadowsProgram.voxelLowData = gl.getUniformLocation(floorShadowsProgram, "uVoxelLow");
+floorShadowsProgram.lightData = gl.getUniformLocation(floorShadowsProgram, "uLightData");
+floorShadowsProgram.size = gl.getUniformLocation(floorShadowsProgram, "uSize");
+floorShadowsProgram.compactTextureSize = gl.getUniformLocation(floorShadowsProgram, "uCompactSize");
+
+
+//=======================================================================================================
+// Textures and framebuffers
+//=======================================================================================================
 
 //Textures
 let tHelper = webGL2.createTexture2D(expandedTextureSize, expandedTextureSize, gl.RGBA32F, gl.RGBA, gl.NEAREST, gl.NEAREST, gl.FLOAT);
 let tVoxelsLow = webGL2.createTexture2D(lowResolutionTextureSize, lowResolutionTextureSize, gl.RGBA32F, gl.RGBA, gl.NEAREST, gl.NEAREST, gl.FLOAT);
 let tScreenPositions = webGL2.createTexture2D(sceneSize, sceneSize, gl.RGBA32F, gl.RGBA, gl.NEAREST, gl.NEAREST, gl.FLOAT);
 let tScreenNormals = webGL2.createTexture2D(sceneSize, sceneSize, gl.RGBA32F, gl.RGBA, gl.NEAREST, gl.NEAREST, gl.FLOAT);
+let tFloorLines = webGL2.createTexture2D(floorTextureSize, floorTextureSize, gl.RGBA8, gl.RGBA, gl.LINEAR, gl.LINEAR_MIPMAP_LINEAR, gl.UNSIGNED_BYTE, null, gl.REPEAT);
 
+let tShadows = webGL2.createTexture2D(sceneSize, sceneSize, gl.RGBA16F, gl.RGBA, gl.LINEAR, gl.LINEAR, gl.HALF_FLOAT);
+let tShadows2 = webGL2.createTexture2D(sceneSize, sceneSize, gl.RGBA16F, gl.RGBA, gl.LINEAR, gl.LINEAR, gl.HALF_FLOAT);
 
 //Framebuffers
 let fbHelper = webGL2.createDrawFramebuffer(tHelper, true);
 let fbVoxelsLow = webGL2.createDrawFramebuffer(tVoxelsLow);
 let fbDeferred = webGL2.createDrawFramebuffer([tScreenPositions, tScreenNormals], true);
+let fbFloorLines = webGL2.createDrawFramebuffer(tFloorLines);
+let fbShadowsData = webGL2.createDrawFramebuffer([tShadows, tShadows2]);
 
 
 //=======================================================================================================
 // Simulation and Rendering (Position based fluids. marching cubes and raytracing)
 //=======================================================================================================
+
+//Floor lines texture
+gl.useProgram(floorProgram);
+gl.uniform1f(floorProgram.backgroundColor, 1);
+gl.bindFramebuffer(gl.FRAMEBUFFER, fbFloorLines);
+gl.viewport(0, 0, floorTextureSize, floorTextureSize);
+gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+gl.bindTexture(gl.TEXTURE_2D, tFloorLines);
+gl.generateMipmap(gl.TEXTURE_2D);
+gl.bindTexture(gl.TEXTURE_2D, null);
 
 //Initiate the position based fluids solver
 PBF.init(particlesPosition, particlesVelocity, pbfResolution, voxelTextureSize, particlesTextureSize);
@@ -139,7 +226,7 @@ let renderParticles = (_x, _u, _width, _height, buffer, cleanBuffer = true) => {
     gl.uniform1f(renderParticlesProgram.scale, pbfResolution);
     gl.uniformMatrix4fv(renderParticlesProgram.cameraMatrix, false, camera.cameraTransformMatrix);
     gl.uniformMatrix4fv(renderParticlesProgram.perspectiveMatrix, false, camera.perspectiveMatrix);
-    if(cleanBuffer) gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    if (cleanBuffer) gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     gl.enable(gl.DEPTH_TEST);
     gl.drawArrays(gl.POINTS, 0, PBF.totalParticles);
     gl.disable(gl.DEPTH_TEST);
@@ -152,7 +239,7 @@ let checkTexture = (texture, _x, _u, _width, _height, buffer, cleanBuffer = true
     gl.useProgram(textureProgram);
     webGL2.bindTexture(textureProgram.texture, texture, 0);
     gl.uniform1i(textureProgram.forceAlpha, forceAlpha);
-    if(cleanBuffer) gl.clear(gl.COLOR_BUFFER_BIT);
+    if (cleanBuffer) gl.clear(gl.COLOR_BUFFER_BIT);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 }
 
@@ -163,10 +250,26 @@ let render = () => {
     requestAnimationFrame(render);
 
     camera.updateCamera(FOV, 1, cameraDistance);
-    let acceleration = {x:0* Math.sin(currentFrame * Math.PI / 180), y:-10,  z:0* Math.cos(currentFrame * Math.PI / 180)}
+
+    //Calculate the light position
+    let lightPos = {x: 0, y: 0, z: 0};
+    let lAlpha = lightAlpha * Math.PI / 180;
+    let lBeta = lightBeta * Math.PI / 180;
+    let r = lightDistance;
+    let s = Math.sin(lAlpha);
+    lightPos.x = r * s * Math.cos(lBeta) + 0.5;
+    lightPos.y = r * Math.cos(lAlpha);
+    lightPos.z = r * s * Math.sin(lBeta) + 0.5;
 
 
-    if(updateSimulation) {
+    let acceleration = {
+        x: 0 * Math.sin(currentFrame * Math.PI / 180),
+        y: -10,
+        z: 0 * Math.cos(currentFrame * Math.PI / 180)
+    }
+
+
+    if (updateSimulation) {
 
         //Update the simulation
         PBF.updateFrame(acceleration, deltaTime, constrainsIterations);
@@ -174,7 +277,7 @@ let render = () => {
         //Generate the mesh from the simulation particles
         Mesher.generateMesh(PBF.positionTexture, PBF.totalParticles, pbfResolution, particleSize, blurSteps, range, maxCells, fastNormals);
 
-        currentFrame ++;
+        currentFrame++;
 
     }
 
@@ -221,15 +324,38 @@ let render = () => {
     gl.disable(gl.DEPTH_TEST);
 
 
+    //Calculate the shadows for the floor
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fbShadowsData);
+    gl.clearColor(0, 0, 0, 0);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    gl.viewport(0, 0, sceneSize, sceneSize);
+    gl.useProgram(floorShadowsProgram);
+    webGL2.bindTexture(floorShadowsProgram.textureTriangles, Mesher.tTriangles, 0);
+    webGL2.bindTexture(floorShadowsProgram.textureNormals, Mesher.tNormals, 1);
+    webGL2.bindTexture(floorShadowsProgram.potentialTexture, tHelper, 2);
+    webGL2.bindTexture(floorShadowsProgram.lowResPotential, tVoxelsLow, 3);
+    gl.uniform1i(floorShadowsProgram.iterations, maxIterations);
+    gl.uniform1i(floorShadowsProgram.maxStepsPerBounce, maxStepsPerBounce);
+    gl.uniform3f(floorShadowsProgram.texture3DData, expandedTextureSize, resolution, expandedBuckets);
+    gl.uniform3f(floorShadowsProgram.voxelLowData, tVoxelsLow.size, lowGridPartitions, lowSideBuckets);
+    gl.uniform4f(floorShadowsProgram.lightData, lightPos.x, lightPos.y, lightPos.z, lightIntensity);
+    gl.uniform1f(floorShadowsProgram.scaler, floorScale);
+    gl.uniform1f(floorShadowsProgram.size, sceneSize);
+    gl.uniform1f(floorShadowsProgram.compactTextureSize, compactTextureSize);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+
     //Checking texture results
     checkTexture(tHelper, 0, 500, 500, 500, null, true, true);
     checkTexture(tVoxelsLow, 500, 500, 500, 500, null, false, true);
+    checkTexture(tShadows, 1000, 500, 500, 500, null, false, true);
+    checkTexture(tShadows2, 1000, 0, 500, 500, null, false, true);
     checkTexture(tScreenPositions, 0, 0, 500, 500, null, false, true);
     checkTexture(tScreenNormals, 500, 0, 500, 500, null, false, true);
 
 };
 
-document.body.addEventListener("keypress", ()=> {
+document.body.addEventListener("keypress", () => {
     updateSimulation = !updateSimulation;
 })
 
