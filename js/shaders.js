@@ -16,6 +16,7 @@ import {fsBlurShadows}          from './shaders/raytracer/fs-blurShadows.js';
 import {fsCaustics}             from './shaders/raytracer/fs-caustics.js';
 import {vsPhotons}              from './shaders/raytracer/vs-photons.js';
 import {fsRadiance}             from './shaders/raytracer/fs-radiance.js';
+import {fsRaytracer}            from './shaders/raytracer/fs-raytracer.js';
 
 
 //=======================================================================================================
@@ -34,6 +35,8 @@ export let blurShadow;
 export let caustics;
 export let photonsGather;
 export let radiance;
+export let raytracer;
+
 
 //=======================================================================================================
 // Shader programs initiation
@@ -138,5 +141,38 @@ export function init() {
     radiance.axis = gl.getUniformLocation(radiance, "uAxis");
     radiance.radius = gl.getUniformLocation(radiance, "uRadius");
     radiance.radiancePower = gl.getUniformLocation(radiance, "uRadiancePower");
+
+
+    raytracer = webGL2.generateProgram(vsQuad, fsRaytracer);
+    raytracer.textureTriangles = gl.getUniformLocation(raytracer, "uTT");
+    raytracer.textureNormals = gl.getUniformLocation(raytracer, "uTN");
+    raytracer.eyeVector = gl.getUniformLocation(raytracer, "uEye");
+    raytracer.iterations = gl.getUniformLocation(raytracer, "uMaxSteps");
+    raytracer.maxStepsPerBounce = gl.getUniformLocation(raytracer, "uMaxBounceSteps");
+    raytracer.refractions = gl.getUniformLocation(raytracer, "uRefractions");
+    raytracer.reflections = gl.getUniformLocation(raytracer, "uReflections");
+    raytracer.refract = gl.getUniformLocation(raytracer, "uRefract");
+    raytracer.absorption = gl.getUniformLocation(raytracer, "uAbsorption");
+    raytracer.color = gl.getUniformLocation(raytracer, "uColor");
+    raytracer.shadeData = gl.getUniformLocation(raytracer, "uShade");
+    raytracer.energyDecay = gl.getUniformLocation(raytracer, "uEnergyDecay");
+    raytracer.distanceAbsorptionScale = gl.getUniformLocation(raytracer, "uAbsorptionDistanceScaler");
+    raytracer.backgroundColor = gl.getUniformLocation(raytracer, "uBg");
+    raytracer.lightData = gl.getUniformLocation(raytracer, "uLightData");
+    raytracer.shadowTexture = gl.getUniformLocation(raytracer, "uTShadows");
+    raytracer.shadowIntensity = gl.getUniformLocation(raytracer, "uShadowIntensity");
+    raytracer.scaler = gl.getUniformLocation(raytracer, "uScaleShadow");
+    raytracer.radianceTexture = gl.getUniformLocation(raytracer, "uRadiance");
+    raytracer.killRay = gl.getUniformLocation(raytracer, "uKillRay");
+    raytracer.potentialTexture = gl.getUniformLocation(raytracer, "uPot");
+    raytracer.texture3DData = gl.getUniformLocation(raytracer, "uTexture3D");
+    raytracer.lowResPotential = gl.getUniformLocation(raytracer, "uLowRes");
+    raytracer.voxelLowData = gl.getUniformLocation(raytracer, "uVoxelLow");
+    raytracer.positions = gl.getUniformLocation(raytracer, "uScreenPositions");
+    raytracer.normals = gl.getUniformLocation(raytracer, "uScreenNormals");
+    raytracer.floorTexture = gl.getUniformLocation(raytracer, "uFloor");
+    raytracer.lightColor = gl.getUniformLocation(raytracer, "uLightColor");
+    raytracer.materialColor = gl.getUniformLocation(raytracer, "uMaterialColor");
+    raytracer.compactTextureSize = gl.getUniformLocation(raytracer, "uCompactSize");
 
 }
