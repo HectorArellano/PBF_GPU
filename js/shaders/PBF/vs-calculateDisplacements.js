@@ -122,7 +122,7 @@ void main() {
     //
     // if(distance > 0.0) endPosition = contactPoint;
 
-    colorData = vec4(endPosition, 1.);
+    colorData = vec4(endPosition, texture(uConstrains, index).g + 1.);
 }
 
 `;

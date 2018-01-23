@@ -13,7 +13,9 @@ void main() {
     float textureSize = float(textureSize(uTexturePosition, 0).x);
     float index1D = float(gl_VertexID);
     vec2 index2D = (vec2(mod(index1D, textureSize), floor(index1D / textureSize)) + vec2(0.5)) / textureSize;
-    vec3 position = texture(uTexturePosition, index2D).rgb;
+    
+    vec4 data = texture(uTexturePosition, index2D);
+    vec3 position = data.rgb;
 
     vec3 gPP = floor(position * u3D.y / uParticlesGridScale);
     gPP.y -= uPhase;
@@ -24,7 +26,7 @@ void main() {
     gP.y = fract(gP.y);
     gP = 2. * gP - vec2(1.);
 
-    colorData = vec4(equal(vec4(depthLevel), vec4(0., 1., 2., 3.)));
+    colorData = 0.7 * data.a * vec4(equal(vec4(depthLevel), vec4(0., 1., 2., 3.)));
 
     gl_PointSize = uSize;
     gl_Position = vec4(gP, 0., 1.0);

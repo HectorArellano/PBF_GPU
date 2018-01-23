@@ -54,6 +54,7 @@ const createBuffer = data => {
 }
 
 //Function used to generate an empty texture2D
+let memory = 0;
 const createTexture2D = (width, height, internalFormat, format, maxFilter, minFilter, type, data = null) => {
     if(contextReady) {
         let texture = gl.createTexture();
@@ -67,6 +68,15 @@ const createTexture2D = (width, height, internalFormat, format, maxFilter, minFi
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 
         gl.bindTexture(gl.TEXTURE_2D, null);
+
+        if(type == gl.FLOAT) memory += width * height * 32 * 4;
+        else memory += width * height * 8 * 4;
+
+        let m = memory / 8; //<----- bits to bytes
+        m /= 1000000; //<----- bytes to mega bytes
+
+        console.log("current GPU memory usage: " + m + " Mb");
+
         return texture;
     } else {
         console.log(new Error("Content not set yet"));
