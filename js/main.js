@@ -14,6 +14,8 @@ import {fsDeferredTriangles}    from './shaders/raytracer/fs-deferredTriangles.j
 import {floorShader}            from './shaders/raytracer/fs-floor.js';
 import {vsFloorShadows}         from './shaders/raytracer/vs-floorShadows.js';
 import {fsFloorShadows}         from './shaders/raytracer/fs-floorShadows.js';
+import {boundingBox}            from './shaders/raytracer/fs-boundingBox.js';
+import {blurShadows}            from './shaders/raytracer/fs-blurShadows.js';
 
 //=======================================================================================================
 // Variables & Constants
@@ -74,7 +76,7 @@ let absorptionColor = [46, 46, 46];
 let dispersion = 0.03;
 let energyDecay = 0;
 let distanceAbsorptionScale = 6;
-let blurShadows = 30;
+let blurShadowsRadius = 30;
 
 let kS = 0.;
 let kD = 0.;
@@ -172,6 +174,15 @@ floorShadowsProgram.lightData = gl.getUniformLocation(floorShadowsProgram, "uLig
 floorShadowsProgram.size = gl.getUniformLocation(floorShadowsProgram, "uSize");
 floorShadowsProgram.compactTextureSize = gl.getUniformLocation(floorShadowsProgram, "uCompactSize");
 
+let shadowBoundingBoxProgram = webGL2.generateProgram(vsQuad, boundingBox);
+shadowBoundingBoxProgram.potentialTexture = gl.getUniformLocation(shadowBoundingBoxProgram, "uPyT");
+shadowBoundingBoxProgram.size = gl.getUniformLocation(shadowBoundingBoxProgram, "uSize");
+
+let blurShadowProgram = webGL2.generateProgram(vsQuad, blurShadows);
+blurShadowProgram.shadowTexture = gl.getUniformLocation(blurShadowProgram, "uShadows");
+blurShadowProgram.axis = gl.getUniformLocation(blurShadowProgram, "uAxis");
+blurShadowProgram.radius = gl.getUniformLocation(blurShadowProgram, "uRadius");
+
 
 //=======================================================================================================
 // Textures and framebuffers
@@ -193,6 +204,8 @@ let fbVoxelsLow = webGL2.createDrawFramebuffer(tVoxelsLow);
 let fbDeferred = webGL2.createDrawFramebuffer([tScreenPositions, tScreenNormals], true);
 let fbFloorLines = webGL2.createDrawFramebuffer(tFloorLines);
 let fbShadowsData = webGL2.createDrawFramebuffer([tShadows, tShadows2]);
+let fbShadows = webGL2.createDrawFramebuffer(tShadows);
+let fbShadows2 = webGL2.createDrawFramebuffer(tShadows2);
 
 
 //=======================================================================================================
@@ -261,7 +274,6 @@ let render = () => {
     lightPos.y = r * Math.cos(lAlpha);
     lightPos.z = r * s * Math.sin(lBeta) + 0.5;
 
-
     let acceleration = {
         x: 0 * Math.sin(currentFrame * Math.PI / 180),
         y: -10,
@@ -324,25 +336,60 @@ let render = () => {
     gl.disable(gl.DEPTH_TEST);
 
 
-    //Calculate the shadows for the floor
-    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fbShadowsData);
-    gl.clearColor(0, 0, 0, 0);
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-    gl.viewport(0, 0, sceneSize, sceneSize);
-    gl.useProgram(floorShadowsProgram);
-    webGL2.bindTexture(floorShadowsProgram.textureTriangles, Mesher.tTriangles, 0);
-    webGL2.bindTexture(floorShadowsProgram.textureNormals, Mesher.tNormals, 1);
-    webGL2.bindTexture(floorShadowsProgram.potentialTexture, tHelper, 2);
-    webGL2.bindTexture(floorShadowsProgram.lowResPotential, tVoxelsLow, 3);
-    gl.uniform1i(floorShadowsProgram.iterations, maxIterations);
-    gl.uniform1i(floorShadowsProgram.maxStepsPerBounce, maxStepsPerBounce);
-    gl.uniform3f(floorShadowsProgram.texture3DData, expandedTextureSize, resolution, expandedBuckets);
-    gl.uniform3f(floorShadowsProgram.voxelLowData, tVoxelsLow.size, lowGridPartitions, lowSideBuckets);
-    gl.uniform4f(floorShadowsProgram.lightData, lightPos.x, lightPos.y, lightPos.z, lightIntensity);
-    gl.uniform1f(floorShadowsProgram.scaler, floorScale);
-    gl.uniform1f(floorShadowsProgram.size, sceneSize);
-    gl.uniform1f(floorShadowsProgram.compactTextureSize, compactTextureSize);
-    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    if(calculateShadows) {
+
+        //Calculate the shadows for the floor
+        gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fbShadowsData);
+        gl.clearColor(0, 0, 0, 0);
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+        gl.viewport(0, 0, sceneSize, sceneSize);
+        gl.useProgram(floorShadowsProgram);
+        webGL2.bindTexture(floorShadowsProgram.textureTriangles, Mesher.tTriangles, 0);
+        webGL2.bindTexture(floorShadowsProgram.textureNormals, Mesher.tNormals, 1);
+        webGL2.bindTexture(floorShadowsProgram.potentialTexture, tHelper, 2);
+        webGL2.bindTexture(floorShadowsProgram.lowResPotential, tVoxelsLow, 3);
+        gl.uniform1i(floorShadowsProgram.iterations, maxIterations);
+        gl.uniform1i(floorShadowsProgram.maxStepsPerBounce, maxStepsPerBounce);
+        gl.uniform3f(floorShadowsProgram.texture3DData, expandedTextureSize, resolution, expandedBuckets);
+        gl.uniform3f(floorShadowsProgram.voxelLowData, tVoxelsLow.size, lowGridPartitions, lowSideBuckets);
+        gl.uniform4f(floorShadowsProgram.lightData, lightPos.x, lightPos.y, lightPos.z, lightIntensity);
+        gl.uniform1f(floorShadowsProgram.scaler, floorScale);
+        gl.uniform1f(floorShadowsProgram.size, sceneSize);
+        gl.uniform1f(floorShadowsProgram.compactTextureSize, compactTextureSize);
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+
+        //Evaluate the bounding box of the shadow for the caustics
+        let levels = Math.ceil(Math.log(sceneSize) / Math.log(2));
+        gl.useProgram(shadowBoundingBoxProgram);
+        for (let i = 0; i < levels; i++) {
+            gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, Mesher.fbPyramid[levels - i - 1]);
+            let size = Math.pow(2, levels - 1 - i);
+            gl.viewport(0, 0, size, size);
+            gl.clear(gl.COLOR_BUFFER_BIT);
+            gl.uniform1f(shadowBoundingBoxProgram.size, Math.pow(2, i + 1) / sceneSize);
+            webGL2.bindTexture(shadowBoundingBoxProgram.potentialTexture, i == 0 ? tShadows2 : Mesher.tLevels[levels - i], 0);
+            gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+        }
+
+
+        //Blur for the shadows
+        gl.useProgram(blurShadowProgram);
+        gl.uniform1f(blurShadowProgram.radius, blurShadowsRadius);
+        gl.viewport(0, 0, sceneSize, sceneSize);
+
+        gl.bindFramebuffer(gl.FRAMEBUFFER, fbShadows2);
+        webGL2.bindTexture(blurShadowProgram.shadowTexture, tShadows, 0);
+        gl.uniform2f(blurShadowProgram.axis, 0, 1 / sceneSize);
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+        gl.bindFramebuffer(gl.FRAMEBUFFER, fbShadows);
+        webGL2.bindTexture(blurShadowProgram.shadowTexture, tShadows2, 0);
+        gl.uniform2f(blurShadowProgram.axis, 1 / sceneSize, 0);
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+    }
+
 
 
     //Checking texture results

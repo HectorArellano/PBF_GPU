@@ -320,4 +320,6 @@ export {init,
         tTriangles,
         tNormals,
         tVoxelsOffsets,
+        fbPyramid,
+        tLevels
 }
