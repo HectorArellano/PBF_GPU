@@ -1,4 +1,4 @@
-const vsPhongTriangles = `#version 300 es
+const vsDeferredTriangles = `#version 300 es
 
 precision highp float;
 precision highp sampler2D;
@@ -20,4 +20,4 @@ void main(void) {
 
 `;
 
-export {vsPhongTriangles}
+export {vsDeferredTriangles}

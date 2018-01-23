@@ -9,6 +9,8 @@ import {fsTextureColor}         from './shaders/utils/fs-simpleTexture.js';
 import {vsQuad}                 from './shaders/utils/vs-quad.js';
 import {highResGrid}            from './shaders/raytracer/vs-highResGrid.js';
 import {lowResGrid}             from './shaders/raytracer/vs-lowResGrid.js';
+import {vsDeferredTriangles}    from './shaders/raytracer/vs-deferredTriangles.js';
+import {fsDeferredTriangles}    from './shaders/raytracer/fs-deferredTriangles.js';
 
 //=======================================================================================================
 // Variables & Constants
@@ -54,6 +56,8 @@ let fastNormals = false;
 let lowResolutionTextureSize =     256;
 let lowGridPartitions =            32;
 let lowSideBuckets =               8;
+let sceneSize =                    1024;       //Requires to be a power of two for mip mapping
+
 
 let radius = pbfResolution * 0.45;
 //Generate the position and velocity
@@ -94,13 +98,24 @@ lowResGridProgram.vertex2DIndex                         = gl.getAttribLocation(l
 lowResGridProgram.gridPartitioning                      = gl.getUniformLocation(lowResGridProgram, "uTexture3D");
 lowResGridProgram.positionTexture                       = gl.getUniformLocation(lowResGridProgram, "uPT");
 
+let deferredProgram                                     = webGL2.generateProgram(vsDeferredTriangles, fsDeferredTriangles);
+deferredProgram.vertexRepet                             = gl.getAttribLocation(deferredProgram, "aVJ");
+deferredProgram.cameraMatrix                            = gl.getUniformLocation(deferredProgram, "uCameraMatrix");
+deferredProgram.perspectiveMatrix                       = gl.getUniformLocation(deferredProgram, "uPMatrix");
+deferredProgram.textureTriangles                        = gl.getUniformLocation(deferredProgram, "uTT");
+deferredProgram.textureNormals                          = gl.getUniformLocation(deferredProgram, "uTN");
 
-//Textures and framebuffers
+//Textures
 let tHelper = webGL2.createTexture2D(expandedTextureSize, expandedTextureSize, gl.RGBA32F, gl.RGBA, gl.NEAREST, gl.NEAREST, gl.FLOAT);
 let tVoxelsLow = webGL2.createTexture2D(lowResolutionTextureSize, lowResolutionTextureSize, gl.RGBA32F, gl.RGBA, gl.NEAREST, gl.NEAREST, gl.FLOAT);
+let tScreenPositions = webGL2.createTexture2D(sceneSize, sceneSize, gl.RGBA32F, gl.RGBA, gl.NEAREST, gl.NEAREST, gl.FLOAT);
+let tScreenNormals = webGL2.createTexture2D(sceneSize, sceneSize, gl.RGBA32F, gl.RGBA, gl.NEAREST, gl.NEAREST, gl.FLOAT);
 
+
+//Framebuffers
 let fbHelper = webGL2.createDrawFramebuffer(tHelper, true);
 let fbVoxelsLow = webGL2.createDrawFramebuffer(tVoxelsLow);
+let fbDeferred = webGL2.createDrawFramebuffer([tScreenPositions, tScreenNormals], true);
 
 
 //=======================================================================================================
@@ -140,6 +155,8 @@ let checkTexture = (texture, _x, _u, _width, _height, buffer, cleanBuffer = true
     if(cleanBuffer) gl.clear(gl.COLOR_BUFFER_BIT);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 }
+
+gl.cullFace(gl.FRONT);
 
 let render = () => {
 
@@ -187,9 +204,28 @@ let render = () => {
     gl.drawArrays(gl.POINTS, 0, 15 * activeMCells);
 
 
+    //Render the triangles to save positions and normals for screen space raytracing.
+    gl.useProgram(deferredProgram);
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fbDeferred);
+    gl.clearColor(0, 0, 0, 0);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    gl.viewport(0, 0, sceneSize, sceneSize);
+    webGL2.bindTexture(deferredProgram.textureTriangles, Mesher.tTriangles, 0);
+    webGL2.bindTexture(deferredProgram.textureNormals, Mesher.tNormals, 1);
+    gl.uniformMatrix4fv(deferredProgram.cameraMatrix, false, camera.cameraTransformMatrix);
+    gl.uniformMatrix4fv(deferredProgram.perspectiveMatrix, false, camera.perspectiveMatrix);
+    gl.enable(gl.DEPTH_TEST);
+    gl.enable(gl.CULL_FACE);
+    gl.drawArrays(gl.TRIANGLES, 0, 15 * activeMCells);
+    gl.disable(gl.CULL_FACE);
+    gl.disable(gl.DEPTH_TEST);
+
+
     //Checking texture results
-    checkTexture(tHelper, 0, 0, 1000, 1000, null, true, true);
-    checkTexture(tVoxelsLow, 1000, 0, 1000, 1000, null, false, true);
+    checkTexture(tHelper, 0, 500, 500, 500, null, true, true);
+    checkTexture(tVoxelsLow, 500, 500, 500, 500, null, false, true);
+    checkTexture(tScreenPositions, 0, 0, 500, 500, null, false, true);
+    checkTexture(tScreenNormals, 500, 0, 500, 500, null, false, true);
 
 };
 
