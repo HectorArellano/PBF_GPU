@@ -29,29 +29,29 @@ let FOV = 30;
 
 //For the Positionn Based Fluids
 let updateSimulation = true;
-let deltaTime = 0.007;
+let deltaTime = 0.01;
 let constrainsIterations = 4;
-let pbfResolution = 256;
-let voxelTextureSize = 4096;
-let particlesTextureSize = 2048;
+let pbfResolution = 128;
+let voxelTextureSize = 2048;
+let particlesTextureSize = 1000;
 let particlesPosition = [];
 let particlesVelocity = []
 let currentFrame = 0;
 
 //Change these values to change marching cubes resolution (128/2048/1024 or 256/4096/2048)
-let resolution = 256;
-let expandedTextureSize = 4096;
-let compressedTextureSize = 2048;
-let compactTextureSize = 3500;
+let resolution = 128;
+let expandedTextureSize = 2048;
+let compressedTextureSize = 1024;
+let compactTextureSize = 1500;
 let compressedBuckets = 8;
 let expandedBuckets = 16;
-let particleSize = 1;
-let blurSteps = 3;
-let range = 0.11;
+let particleSize = 2;
+let blurSteps = 5;
+let range = 0.31;
 let maxCells = 3.5;
 let fastNormals = false;
 
-let radius = pbfResolution * 0.49;
+let radius = pbfResolution * 0.45;
 //Generate the position and velocity
 for(let i = 0; i < pbfResolution; i ++) {
     for(let j = 0; j < pbfResolution; j ++) {
@@ -62,15 +62,9 @@ for(let i = 0; i < pbfResolution; i ++) {
             let y = j - pbfResolution * 0.5;
             let z = k - pbfResolution * 0.5;
 
-            if(x*x + y*y + z*z < radius * radius && j < pbfResolution * 0.3) {
+            if(x*x + y*y + z*z < radius * radius && k < pbfResolution * 0.4) {
                 particlesPosition.push(i, j, k, 1);
                 particlesVelocity.push(0, 0, 0, 0); //Velocity is zero for all the particles.
-            }
-
-            y = j - pbfResolution * 0.7;
-            if(x*x + y*y + z*z <20 * 20) {
-                particlesPosition.push(i, j, k, 1);
-                particlesVelocity.push(0, -15, 0, 0); //Velocity is zero for all the particles.
             }
         }
     }
