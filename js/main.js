@@ -7,9 +7,8 @@ import {vsParticles}            from './shaders/utils/vs-renderParticles.js'
 import {fsColor}                from './shaders/utils/fs-simpleColor.js';
 import {fsTextureColor}         from './shaders/utils/fs-simpleTexture.js';
 import {vsQuad}                 from './shaders/utils/vs-quad.js';
-import {vsPhongTriangles}       from './shaders/utils/vs-phongTriangles.js';
-import {fsPhongTriangles}       from './shaders/utils/fs-phongTriangles.js';
-
+import {highResGrid}            from './shaders/raytracer/vs-highResGrid.js';
+import {lowResGrid}             from './shaders/raytracer/vs-lowResGrid.js';
 
 //=======================================================================================================
 // Variables & Constants
@@ -51,6 +50,11 @@ let range = 0.31;
 let maxCells = 3.5;
 let fastNormals = false;
 
+//For the raytracer
+let lowResolutionTextureSize =     256;
+let lowGridPartitions =            32;
+let lowSideBuckets =               8;
+
 let radius = pbfResolution * 0.45;
 //Generate the position and velocity
 for(let i = 0; i < pbfResolution; i ++) {
@@ -70,6 +74,8 @@ for(let i = 0; i < pbfResolution; i ++) {
     }
 }
 
+
+//Shader programs
 let renderParticlesProgram                              = webGL2.generateProgram(vsParticles, fsColor);
 renderParticlesProgram.positionTexture                  = gl.getUniformLocation(renderParticlesProgram, "uTexturePosition");
 renderParticlesProgram.cameraMatrix                     = gl.getUniformLocation(renderParticlesProgram, "uCameraMatrix");
@@ -80,16 +86,25 @@ let textureProgram                                      = webGL2.generateProgram
 textureProgram.texture                                  = gl.getUniformLocation(textureProgram, "uTexture");
 textureProgram.forceAlpha                               = gl.getUniformLocation(textureProgram, "uForceAlpha");
 
-let phongTrianglesProgram                               = webGL2.generateProgram(vsPhongTriangles, fsPhongTriangles);
-phongTrianglesProgram.cameraMatrix                      = gl.getUniformLocation(phongTrianglesProgram, "uCameraMatrix");
-phongTrianglesProgram.perspectiveMatrix                 = gl.getUniformLocation(phongTrianglesProgram, "uPMatrix");
-phongTrianglesProgram.textureTriangles                  = gl.getUniformLocation(phongTrianglesProgram, "uTT");
-phongTrianglesProgram.textureNormals                    = gl.getUniformLocation(phongTrianglesProgram, "uTN");
-phongTrianglesProgram.cameraPosition                    = gl.getUniformLocation(phongTrianglesProgram, "uEye");
+let highResGridProgram                                  = webGL2.generateProgram(highResGrid, fsColor);
+highResGridProgram.verticesTexture                      = gl.getUniformLocation(highResGridProgram, "uVoxels");
+
+let lowResGridProgram                                   = webGL2.generateProgram(lowResGrid, fsColor);
+lowResGridProgram.vertex2DIndex                         = gl.getAttribLocation(lowResGridProgram, "aV2I");
+lowResGridProgram.gridPartitioning                      = gl.getUniformLocation(lowResGridProgram, "uTexture3D");
+lowResGridProgram.positionTexture                       = gl.getUniformLocation(lowResGridProgram, "uPT");
+
+
+//Textures and framebuffers
+let tHelper = webGL2.createTexture2D(expandedTextureSize, expandedTextureSize, gl.RGBA32F, gl.RGBA, gl.NEAREST, gl.NEAREST, gl.FLOAT);
+let tVoxelsLow = webGL2.createTexture2D(lowResolutionTextureSize, lowResolutionTextureSize, gl.RGBA32F, gl.RGBA, gl.NEAREST, gl.NEAREST, gl.FLOAT);
+
+let fbHelper = webGL2.createDrawFramebuffer(tHelper, true);
+let fbVoxelsLow = webGL2.createDrawFramebuffer(tVoxelsLow);
 
 
 //=======================================================================================================
-// Simulation and Rendering (Position based fluids)
+// Simulation and Rendering (Position based fluids. marching cubes and raytracing)
 //=======================================================================================================
 
 //Initiate the position based fluids solver
@@ -100,6 +115,32 @@ particlesVelocity = null;
 //Initiate the mesher generator
 Mesher.init(resolution, expandedTextureSize, compressedTextureSize, compactTextureSize, compressedBuckets, expandedBuckets);
 
+//Function used to render the particles in a framebuffer.
+let renderParticles = (_x, _u, _width, _height, buffer, cleanBuffer = true) => {
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, buffer);
+    gl.viewport(_x, _u, _width, _height);
+    gl.useProgram(renderParticlesProgram);
+    webGL2.bindTexture(renderParticlesProgram.positionTexture, PBF.positionTexture, 0);
+    gl.uniform1f(renderParticlesProgram.scale, pbfResolution);
+    gl.uniformMatrix4fv(renderParticlesProgram.cameraMatrix, false, camera.cameraTransformMatrix);
+    gl.uniformMatrix4fv(renderParticlesProgram.perspectiveMatrix, false, camera.perspectiveMatrix);
+    if(cleanBuffer) gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    gl.enable(gl.DEPTH_TEST);
+    gl.drawArrays(gl.POINTS, 0, PBF.totalParticles);
+    gl.disable(gl.DEPTH_TEST);
+}
+
+//Function used to check the textures
+let checkTexture = (texture, _x, _u, _width, _height, buffer, cleanBuffer = true, forceAlpha = false) => {
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, buffer);
+    gl.viewport(_x, _u, _width, _height);
+    gl.useProgram(textureProgram);
+    webGL2.bindTexture(textureProgram.texture, texture, 0);
+    gl.uniform1i(textureProgram.forceAlpha, forceAlpha);
+    if(cleanBuffer) gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+}
+
 let render = () => {
 
     requestAnimationFrame(render);
@@ -109,46 +150,46 @@ let render = () => {
 
 
     if(updateSimulation) {
+
         //Update the simulation
-        if(currentFrame % 2 ==1) PBF.updateFrame(acceleration, deltaTime, constrainsIterations);
+        PBF.updateFrame(acceleration, deltaTime, constrainsIterations);
 
         //Generate the mesh from the simulation particles
-        if(currentFrame % 2 ==0) Mesher.generateMesh(PBF.positionTexture, PBF.totalParticles, pbfResolution, particleSize, blurSteps, range, maxCells, fastNormals);
+        Mesher.generateMesh(PBF.positionTexture, PBF.totalParticles, pbfResolution, particleSize, blurSteps, range, maxCells, fastNormals);
 
         currentFrame ++;
 
     }
 
-
-    //Render particles
-    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
-    gl.viewport(0, 0, canvas.height, canvas.height);
-    gl.useProgram(renderParticlesProgram);
-    webGL2.bindTexture(renderParticlesProgram.positionTexture, PBF.positionTexture, 0);
-    gl.uniform1f(renderParticlesProgram.scale, pbfResolution);
-    gl.uniformMatrix4fv(renderParticlesProgram.cameraMatrix, false, camera.cameraTransformMatrix);
-    gl.uniformMatrix4fv(renderParticlesProgram.perspectiveMatrix, false, camera.perspectiveMatrix);
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-    gl.enable(gl.DEPTH_TEST);
-    gl.drawArrays(gl.POINTS, 0, PBF.totalParticles);
-    gl.disable(gl.DEPTH_TEST);
-
+    //Ray tracing section
 
     let activeMCells = Math.ceil(maxCells * expandedTextureSize * expandedTextureSize / 100);
 
 
-    //Render the triangles
-    gl.useProgram(phongTrianglesProgram);
-    gl.viewport(canvas.height, 0, canvas.height, canvas.height);
-    webGL2.bindTexture(phongTrianglesProgram.textureTriangles, Mesher.tTriangles, 0);
-    webGL2.bindTexture(phongTrianglesProgram.textureNormals, Mesher.tNormals, 1);
-    gl.uniformMatrix4fv(phongTrianglesProgram.cameraMatrix, false, camera.cameraTransformMatrix);
-    gl.uniformMatrix4fv(phongTrianglesProgram.perspectiveMatrix, false, camera.perspectiveMatrix);
-    gl.uniform3f(phongTrianglesProgram.cameraPosition, camera.position[0], camera.position[1], camera.position[2]);
+    //Generate the high resolution grid for the ray tracer
+    gl.useProgram(highResGridProgram);
+    webGL2.bindTexture(highResGridProgram.verticesTexture, Mesher.tVoxelsOffsets, 0);
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fbHelper);
+    gl.viewport(0, 0, expandedTextureSize, expandedTextureSize);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     gl.enable(gl.DEPTH_TEST);
-    gl.drawArrays(gl.TRIANGLES, 0, 15 * activeMCells);
+    gl.drawArrays(gl.POINTS, 0, 15 * activeMCells);
     gl.disable(gl.DEPTH_TEST);
 
+
+    //Generate the low resolution grid for the ray tracer
+    gl.useProgram(lowResGridProgram);
+    webGL2.bindTexture(lowResGridProgram.positionTexture, Mesher.tTriangles, 0);
+    gl.uniform3f(lowResGridProgram.gridPartitioning, 1 / lowResolutionTextureSize, lowGridPartitions, lowSideBuckets);
+    gl.viewport(0, 0, lowResolutionTextureSize, lowResolutionTextureSize);
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fbVoxelsLow);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.drawArrays(gl.POINTS, 0, 15 * activeMCells);
+
+
+    //Checking texture results
+    checkTexture(tHelper, 0, 0, 1000, 1000, null, true, true);
+    checkTexture(tVoxelsLow, 1000, 0, 1000, 1000, null, false, true);
 
 };
 
