@@ -1,4 +1,4 @@
-const floorShader = `#version 300 es
+const fsFloorShader = `#version 300 es
 
 precision highp sampler2D;
 precision highp float;
@@ -33,4 +33,4 @@ void main(void) {
 }
 `;
 
-export {floorShader}
+export {fsFloorShader}

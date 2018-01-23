@@ -1,4 +1,4 @@
-const blurShadows = `#version 300 es
+const fsBlurShadows = `#version 300 es
 
 precision highp float;
 precision highp sampler2D;
@@ -38,4 +38,4 @@ void main(void) {
 
 `;
 
-export {blurShadows}
+export {fsBlurShadows}

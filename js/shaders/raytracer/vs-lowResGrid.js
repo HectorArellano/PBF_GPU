@@ -1,4 +1,4 @@
-const lowResGrid = `#version 300 es
+const vsLowResGrid = `#version 300 es
 
 precision highp float;
 precision highp sampler2D;
@@ -24,4 +24,4 @@ void main(void) {
 
 `;
 
-export {lowResGrid}
+export {vsLowResGrid}

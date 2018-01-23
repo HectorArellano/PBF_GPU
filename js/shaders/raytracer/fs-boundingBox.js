@@ -1,4 +1,4 @@
-const boundingBox = `#version 300 es
+const fsBoundingBox = `#version 300 es
 
 precision highp float;
 precision highp sampler2D;
@@ -22,4 +22,4 @@ void main(void) {
 }
 `;
 
-export {boundingBox}
+export {fsBoundingBox}
