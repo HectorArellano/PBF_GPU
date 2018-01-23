@@ -24,16 +24,16 @@ import {fsRadiance}             from './shaders/raytracer/fs-radiance.js';
 
 export let renderParticles;
 export let texture;
-export let highResGridProgram;
-export let lowResGridProgram;
-export let deferredProgram;
-export let floorProgram;
-export let floorShadowsProgram;
-export let shadowBoundingBoxProgram;
-export let blurShadowProgram;
-export let causticsProgram;
-export let photonsGatherProgram;
-export let radianceProgram;
+export let highResGrid;
+export let lowResGrid;
+export let deferred;
+export let floor;
+export let floorShadows;
+export let shadowBoundingBox;
+export let blurShadow;
+export let caustics;
+export let photonsGather;
+export let radiance;
 
 //=======================================================================================================
 // Shader programs initiation
@@ -53,90 +53,90 @@ export function init() {
     texture.forceAlpha = gl.getUniformLocation(texture, "uForceAlpha");
 
 
-    highResGridProgram = webGL2.generateProgram(vsHighResGrid, fsColor);
-    highResGridProgram.verticesTexture = gl.getUniformLocation(highResGridProgram, "uVoxels");
+    highResGrid = webGL2.generateProgram(vsHighResGrid, fsColor);
+    highResGrid.verticesTexture = gl.getUniformLocation(highResGrid, "uVoxels");
 
 
-    lowResGridProgram = webGL2.generateProgram(vsLowResGrid, fsColor);
-    lowResGridProgram.vertex2DIndex = gl.getAttribLocation(lowResGridProgram, "aV2I");
-    lowResGridProgram.gridPartitioning = gl.getUniformLocation(lowResGridProgram, "uTexture3D");
-    lowResGridProgram.positionTexture = gl.getUniformLocation(lowResGridProgram, "uPT");
+    lowResGrid = webGL2.generateProgram(vsLowResGrid, fsColor);
+    lowResGrid.vertex2DIndex = gl.getAttribLocation(lowResGrid, "aV2I");
+    lowResGrid.gridPartitioning = gl.getUniformLocation(lowResGrid, "uTexture3D");
+    lowResGrid.positionTexture = gl.getUniformLocation(lowResGrid, "uPT");
 
 
-    deferredProgram = webGL2.generateProgram(vsDeferredTriangles, fsDeferredTriangles);
-    deferredProgram.vertexRepet = gl.getAttribLocation(deferredProgram, "aVJ");
-    deferredProgram.cameraMatrix = gl.getUniformLocation(deferredProgram, "uCameraMatrix");
-    deferredProgram.perspectiveMatrix = gl.getUniformLocation(deferredProgram, "uPMatrix");
-    deferredProgram.textureTriangles = gl.getUniformLocation(deferredProgram, "uTT");
-    deferredProgram.textureNormals = gl.getUniformLocation(deferredProgram, "uTN");
+    deferred = webGL2.generateProgram(vsDeferredTriangles, fsDeferredTriangles);
+    deferred.vertexRepet = gl.getAttribLocation(deferred, "aVJ");
+    deferred.cameraMatrix = gl.getUniformLocation(deferred, "uCameraMatrix");
+    deferred.perspectiveMatrix = gl.getUniformLocation(deferred, "uPMatrix");
+    deferred.textureTriangles = gl.getUniformLocation(deferred, "uTT");
+    deferred.textureNormals = gl.getUniformLocation(deferred, "uTN");
 
 
-    floorProgram = webGL2.generateProgram(vsQuad, fsFloorShader);
-    floorProgram.backgroundColor = gl.getUniformLocation(floorProgram, "uBg");
+    floor = webGL2.generateProgram(vsQuad, fsFloorShader);
+    floor.backgroundColor = gl.getUniformLocation(floor, "uBg");
 
 
-    floorShadowsProgram = webGL2.generateProgram(vsFloorShadows, fsFloorShadows);
-    floorShadowsProgram.textureTriangles = gl.getUniformLocation(floorShadowsProgram, "uTT");
-    floorShadowsProgram.textureNormals = gl.getUniformLocation(floorShadowsProgram, "uTN");
-    floorShadowsProgram.iterations = gl.getUniformLocation(floorShadowsProgram, "uMaxSteps");
-    floorShadowsProgram.maxStepsPerBounce = gl.getUniformLocation(floorShadowsProgram, "uMaxBounceSteps");
-    floorShadowsProgram.scaler = gl.getUniformLocation(floorShadowsProgram, "uScaler");
-    floorShadowsProgram.potentialTexture = gl.getUniformLocation(floorShadowsProgram, "uPot");
-    floorShadowsProgram.texture3DData = gl.getUniformLocation(floorShadowsProgram, "uTexture3D");
-    floorShadowsProgram.lowResPotential = gl.getUniformLocation(floorShadowsProgram, "uLowRes");
-    floorShadowsProgram.voxelLowData = gl.getUniformLocation(floorShadowsProgram, "uVoxelLow");
-    floorShadowsProgram.lightData = gl.getUniformLocation(floorShadowsProgram, "uLightData");
-    floorShadowsProgram.size = gl.getUniformLocation(floorShadowsProgram, "uSize");
-    floorShadowsProgram.compactTextureSize = gl.getUniformLocation(floorShadowsProgram, "uCompactSize");
+    floorShadows = webGL2.generateProgram(vsFloorShadows, fsFloorShadows);
+    floorShadows.textureTriangles = gl.getUniformLocation(floorShadows, "uTT");
+    floorShadows.textureNormals = gl.getUniformLocation(floorShadows, "uTN");
+    floorShadows.iterations = gl.getUniformLocation(floorShadows, "uMaxSteps");
+    floorShadows.maxStepsPerBounce = gl.getUniformLocation(floorShadows, "uMaxBounceSteps");
+    floorShadows.scaler = gl.getUniformLocation(floorShadows, "uScaler");
+    floorShadows.potentialTexture = gl.getUniformLocation(floorShadows, "uPot");
+    floorShadows.texture3DData = gl.getUniformLocation(floorShadows, "uTexture3D");
+    floorShadows.lowResPotential = gl.getUniformLocation(floorShadows, "uLowRes");
+    floorShadows.voxelLowData = gl.getUniformLocation(floorShadows, "uVoxelLow");
+    floorShadows.lightData = gl.getUniformLocation(floorShadows, "uLightData");
+    floorShadows.size = gl.getUniformLocation(floorShadows, "uSize");
+    floorShadows.compactTextureSize = gl.getUniformLocation(floorShadows, "uCompactSize");
 
 
-    shadowBoundingBoxProgram = webGL2.generateProgram(vsQuad, fsBoundingBox);
-    shadowBoundingBoxProgram.potentialTexture = gl.getUniformLocation(shadowBoundingBoxProgram, "uPyT");
-    shadowBoundingBoxProgram.size = gl.getUniformLocation(shadowBoundingBoxProgram, "uSize");
+    shadowBoundingBox = webGL2.generateProgram(vsQuad, fsBoundingBox);
+    shadowBoundingBox.potentialTexture = gl.getUniformLocation(shadowBoundingBox, "uPyT");
+    shadowBoundingBox.size = gl.getUniformLocation(shadowBoundingBox, "uSize");
 
 
-    blurShadowProgram = webGL2.generateProgram(vsQuad, fsBlurShadows);
-    blurShadowProgram.shadowTexture = gl.getUniformLocation(blurShadowProgram, "uShadows");
-    blurShadowProgram.axis = gl.getUniformLocation(blurShadowProgram, "uAxis");
-    blurShadowProgram.radius = gl.getUniformLocation(blurShadowProgram, "uRadius");
+    blurShadow = webGL2.generateProgram(vsQuad, fsBlurShadows);
+    blurShadow.shadowTexture = gl.getUniformLocation(blurShadow, "uShadows");
+    blurShadow.axis = gl.getUniformLocation(blurShadow, "uAxis");
+    blurShadow.radius = gl.getUniformLocation(blurShadow, "uRadius");
 
 
-    causticsProgram = webGL2.generateProgram(vsQuad, fsCaustics);
-    causticsProgram.vertexIndex = gl.getAttribLocation(causticsProgram, "aVI");
-    causticsProgram.randomTexture = gl.getUniformLocation(causticsProgram, "uRayTexture");
-    causticsProgram.boundingBoxTexture = gl.getUniformLocation(causticsProgram, "uBoundingShadow");
-    causticsProgram.potentialTexture = gl.getUniformLocation(causticsProgram, "uPot");
-    causticsProgram.lowResPotential = gl.getUniformLocation(causticsProgram, "uLowRes");
-    causticsProgram.textureTriangles = gl.getUniformLocation(causticsProgram, "uTT");
-    causticsProgram.textureNormals = gl.getUniformLocation(causticsProgram, "uTN");
-    causticsProgram.lightPosition = gl.getUniformLocation(causticsProgram, "uLightPosition");
-    causticsProgram.absorption = gl.getUniformLocation(causticsProgram, "uAbsorption");
-    causticsProgram.texture3DData = gl.getUniformLocation(causticsProgram, "uTexture3D");
-    causticsProgram.voxelLowData = gl.getUniformLocation(causticsProgram, "uVoxelLow");
-    causticsProgram.lightColor = gl.getUniformLocation(causticsProgram, "uLightColor");
-    causticsProgram.reflectionPhotons = gl.getUniformLocation(causticsProgram, "uReflectionPhotons");
-    causticsProgram.scale = gl.getUniformLocation(causticsProgram, "uScale");
-    causticsProgram.photonEnergy = gl.getUniformLocation(causticsProgram, "uEnergy");
-    causticsProgram.refract = gl.getUniformLocation(causticsProgram, "uRefract");
-    causticsProgram.distanceAbsorptionScale = gl.getUniformLocation(causticsProgram, "uAbsorptionDistanceScaler");
-    causticsProgram.refractions = gl.getUniformLocation(causticsProgram, "uRefractions");
-    causticsProgram.reflections = gl.getUniformLocation(causticsProgram, "uReflections");
-    causticsProgram.iterations = gl.getUniformLocation(causticsProgram, "uMaxSteps");
-    causticsProgram.maxStepsPerBounce = gl.getUniformLocation(causticsProgram, "uMaxBounceSteps");
-    causticsProgram.dispersion = gl.getUniformLocation(causticsProgram, "uDispersion");
-    causticsProgram.compactTextureSize = gl.getUniformLocation(causticsProgram, "uCompactSize");
+    caustics = webGL2.generateProgram(vsQuad, fsCaustics);
+    caustics.vertexIndex = gl.getAttribLocation(caustics, "aVI");
+    caustics.randomTexture = gl.getUniformLocation(caustics, "uRayTexture");
+    caustics.boundingBoxTexture = gl.getUniformLocation(caustics, "uBoundingShadow");
+    caustics.potentialTexture = gl.getUniformLocation(caustics, "uPot");
+    caustics.lowResPotential = gl.getUniformLocation(caustics, "uLowRes");
+    caustics.textureTriangles = gl.getUniformLocation(caustics, "uTT");
+    caustics.textureNormals = gl.getUniformLocation(caustics, "uTN");
+    caustics.lightPosition = gl.getUniformLocation(caustics, "uLightPosition");
+    caustics.absorption = gl.getUniformLocation(caustics, "uAbsorption");
+    caustics.texture3DData = gl.getUniformLocation(caustics, "uTexture3D");
+    caustics.voxelLowData = gl.getUniformLocation(caustics, "uVoxelLow");
+    caustics.lightColor = gl.getUniformLocation(caustics, "uLightColor");
+    caustics.reflectionPhotons = gl.getUniformLocation(caustics, "uReflectionPhotons");
+    caustics.scale = gl.getUniformLocation(caustics, "uScale");
+    caustics.photonEnergy = gl.getUniformLocation(caustics, "uEnergy");
+    caustics.refract = gl.getUniformLocation(caustics, "uRefract");
+    caustics.distanceAbsorptionScale = gl.getUniformLocation(caustics, "uAbsorptionDistanceScaler");
+    caustics.refractions = gl.getUniformLocation(caustics, "uRefractions");
+    caustics.reflections = gl.getUniformLocation(caustics, "uReflections");
+    caustics.iterations = gl.getUniformLocation(caustics, "uMaxSteps");
+    caustics.maxStepsPerBounce = gl.getUniformLocation(caustics, "uMaxBounceSteps");
+    caustics.dispersion = gl.getUniformLocation(caustics, "uDispersion");
+    caustics.compactTextureSize = gl.getUniformLocation(caustics, "uCompactSize");
 
 
-    photonsGatherProgram = webGL2.generateProgram(vsPhotons, fsColor);
-    photonsGatherProgram.photonSize = gl.getUniformLocation(photonsGatherProgram, "uSize");
-    photonsGatherProgram.positions = gl.getUniformLocation(photonsGatherProgram, "uPositions");
-    photonsGatherProgram.colors = gl.getUniformLocation(photonsGatherProgram, "uColors");
+    photonsGather = webGL2.generateProgram(vsPhotons, fsColor);
+    photonsGather.photonSize = gl.getUniformLocation(photonsGather, "uSize");
+    photonsGather.positions = gl.getUniformLocation(photonsGather, "uPositions");
+    photonsGather.colors = gl.getUniformLocation(photonsGather, "uColors");
 
 
-    radianceProgram = webGL2.generateProgram(vsQuad, fsRadiance);
-    radianceProgram.photonTexture = gl.getUniformLocation(radianceProgram, "uPhotons");
-    radianceProgram.axis = gl.getUniformLocation(radianceProgram, "uAxis");
-    radianceProgram.radius = gl.getUniformLocation(radianceProgram, "uRadius");
-    radianceProgram.radiancePower = gl.getUniformLocation(radianceProgram, "uRadiancePower");
+    radiance = webGL2.generateProgram(vsQuad, fsRadiance);
+    radiance.photonTexture = gl.getUniformLocation(radiance, "uPhotons");
+    radiance.axis = gl.getUniformLocation(radiance, "uAxis");
+    radiance.radius = gl.getUniformLocation(radiance, "uRadius");
+    radiance.radiancePower = gl.getUniformLocation(radiance, "uRadiancePower");
 
 }

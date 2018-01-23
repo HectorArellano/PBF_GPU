@@ -169,8 +169,8 @@ arrayRays = null;
 //=======================================================================================================
 
 //Floor lines texture
-gl.useProgram(Programs.floorProgram);
-gl.uniform1f(Programs.floorProgram.backgroundColor, 1);
+gl.useProgram(Programs.floor);
+gl.uniform1f(Programs.floor.backgroundColor, 1);
 gl.bindFramebuffer(gl.FRAMEBUFFER, fbFloorLines);
 gl.viewport(0, 0, floorTextureSize, floorTextureSize);
 gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
@@ -216,21 +216,21 @@ let checkTexture = (texture, _x, _u, _width, _height, buffer, cleanBuffer = true
 let evaluateRadiance = () => {
     
     //Caustics fsRadiance
-    gl.useProgram(Programs.radianceProgram);
-    gl.uniform1f(Programs.radianceProgram.radius, radianceRadius);
-    gl.uniform1f(Programs.radianceProgram.radiancePower, radiancePower);
+    gl.useProgram(Programs.radiance);
+    gl.uniform1f(Programs.radiance.radius, radianceRadius);
+    gl.uniform1f(Programs.radiance.radiancePower, radiancePower);
     gl.viewport(0, 0, causticsSize, causticsSize);
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, fbRadiance);
     gl.clear(gl.COLOR_BUFFER_BIT);
-    webGL2.bindTexture(Programs.radianceProgram.photonTexture, tCaustics, 0);
-    gl.uniform2f(Programs.radianceProgram.axis, 0, 1 / causticsSize);
+    webGL2.bindTexture(Programs.radiance.photonTexture, tCaustics, 0);
+    gl.uniform2f(Programs.radiance.axis, 0, 1 / causticsSize);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     
     gl.bindFramebuffer(gl.FRAMEBUFFER, fbRadiance2);
     gl.clear(gl.COLOR_BUFFER_BIT);
-    gl.uniform2f(Programs.radianceProgram.axis, 1 / causticsSize, 0);
-    webGL2.bindTexture(Programs.radianceProgram.photonTexture, tRadiance, 0);
+    gl.uniform2f(Programs.radiance.axis, 1 / causticsSize, 0);
+    webGL2.bindTexture(Programs.radiance.photonTexture, tRadiance, 0);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     
 }
@@ -280,8 +280,8 @@ let render = () => {
 
 
     //Generate the high resolution grid for the ray tracer
-    gl.useProgram(Programs.highResGridProgram);
-    webGL2.bindTexture(Programs.highResGridProgram.verticesTexture, Mesher.tVoxelsOffsets, 0);
+    gl.useProgram(Programs.highResGrid);
+    webGL2.bindTexture(Programs.highResGrid.verticesTexture, Mesher.tVoxelsOffsets, 0);
     gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fbHelper);
     gl.viewport(0, 0, expandedTextureSize, expandedTextureSize);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
@@ -291,9 +291,9 @@ let render = () => {
 
 
     //Generate the low resolution grid for the ray tracer
-    gl.useProgram(Programs.lowResGridProgram);
-    webGL2.bindTexture(Programs.lowResGridProgram.positionTexture, Mesher.tTriangles, 0);
-    gl.uniform3f(Programs.lowResGridProgram.gridPartitioning, 1 / lowResolutionTextureSize, lowGridPartitions, lowSideBuckets);
+    gl.useProgram(Programs.lowResGrid);
+    webGL2.bindTexture(Programs.lowResGrid.positionTexture, Mesher.tTriangles, 0);
+    gl.uniform3f(Programs.lowResGrid.gridPartitioning, 1 / lowResolutionTextureSize, lowGridPartitions, lowSideBuckets);
     gl.viewport(0, 0, lowResolutionTextureSize, lowResolutionTextureSize);
     gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fbVoxelsLow);
     gl.clear(gl.COLOR_BUFFER_BIT);
@@ -301,15 +301,15 @@ let render = () => {
 
 
     //Render the triangles to save positions and normals for screen space raytracing.
-    gl.useProgram(Programs.deferredProgram);
+    gl.useProgram(Programs.deferred);
     gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fbDeferred);
     gl.clearColor(0, 0, 0, 0);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     gl.viewport(0, 0, sceneSize, sceneSize);
-    webGL2.bindTexture(Programs.deferredProgram.textureTriangles, Mesher.tTriangles, 0);
-    webGL2.bindTexture(Programs.deferredProgram.textureNormals, Mesher.tNormals, 1);
-    gl.uniformMatrix4fv(Programs.deferredProgram.cameraMatrix, false, camera.cameraTransformMatrix);
-    gl.uniformMatrix4fv(Programs.deferredProgram.perspectiveMatrix, false, camera.perspectiveMatrix);
+    webGL2.bindTexture(Programs.deferred.textureTriangles, Mesher.tTriangles, 0);
+    webGL2.bindTexture(Programs.deferred.textureNormals, Mesher.tNormals, 1);
+    gl.uniformMatrix4fv(Programs.deferred.cameraMatrix, false, camera.cameraTransformMatrix);
+    gl.uniformMatrix4fv(Programs.deferred.perspectiveMatrix, false, camera.perspectiveMatrix);
     gl.enable(gl.DEPTH_TEST);
     gl.enable(gl.CULL_FACE);
     gl.drawArrays(gl.TRIANGLES, 0, 15 * activeMCells);
@@ -324,49 +324,49 @@ let render = () => {
         gl.clearColor(0, 0, 0, 0);
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
         gl.viewport(0, 0, sceneSize, sceneSize);
-        gl.useProgram(Programs.floorShadowsProgram);
-        webGL2.bindTexture(Programs.floorShadowsProgram.textureTriangles, Mesher.tTriangles, 0);
-        webGL2.bindTexture(Programs.floorShadowsProgram.textureNormals, Mesher.tNormals, 1);
-        webGL2.bindTexture(Programs.floorShadowsProgram.potentialTexture, tHelper, 2);
-        webGL2.bindTexture(Programs.floorShadowsProgram.lowResPotential, tVoxelsLow, 3);
-        gl.uniform1i(Programs.floorShadowsProgram.iterations, maxIterations);
-        gl.uniform1i(Programs.floorShadowsProgram.maxStepsPerBounce, maxStepsPerBounce);
-        gl.uniform3f(Programs.floorShadowsProgram.texture3DData, expandedTextureSize, resolution, expandedBuckets);
-        gl.uniform3f(Programs.floorShadowsProgram.voxelLowData, tVoxelsLow.size, lowGridPartitions, lowSideBuckets);
-        gl.uniform4f(Programs.floorShadowsProgram.lightData, lightPos.x, lightPos.y, lightPos.z, lightIntensity);
-        gl.uniform1f(Programs.floorShadowsProgram.scaler, floorScale);
-        gl.uniform1f(Programs.floorShadowsProgram.size, sceneSize);
-        gl.uniform1f(Programs.floorShadowsProgram.compactTextureSize, compactTextureSize);
+        gl.useProgram(Programs.floorShadows);
+        webGL2.bindTexture(Programs.floorShadows.textureTriangles, Mesher.tTriangles, 0);
+        webGL2.bindTexture(Programs.floorShadows.textureNormals, Mesher.tNormals, 1);
+        webGL2.bindTexture(Programs.floorShadows.potentialTexture, tHelper, 2);
+        webGL2.bindTexture(Programs.floorShadows.lowResPotential, tVoxelsLow, 3);
+        gl.uniform1i(Programs.floorShadows.iterations, maxIterations);
+        gl.uniform1i(Programs.floorShadows.maxStepsPerBounce, maxStepsPerBounce);
+        gl.uniform3f(Programs.floorShadows.texture3DData, expandedTextureSize, resolution, expandedBuckets);
+        gl.uniform3f(Programs.floorShadows.voxelLowData, tVoxelsLow.size, lowGridPartitions, lowSideBuckets);
+        gl.uniform4f(Programs.floorShadows.lightData, lightPos.x, lightPos.y, lightPos.z, lightIntensity);
+        gl.uniform1f(Programs.floorShadows.scaler, floorScale);
+        gl.uniform1f(Programs.floorShadows.size, sceneSize);
+        gl.uniform1f(Programs.floorShadows.compactTextureSize, compactTextureSize);
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
 
         //Evaluate the bounding box of the shadow for the fsCaustics
         let levels = Math.ceil(Math.log(sceneSize) / Math.log(2));
-        gl.useProgram(Programs.shadowBoundingBoxProgram);
+        gl.useProgram(Programs.shadowBoundingBox);
         for (let i = 0; i < levels; i++) {
             gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, Mesher.fbPyramid[levels - i - 1]);
             let size = Math.pow(2, levels - 1 - i);
             gl.viewport(0, 0, size, size);
             gl.clear(gl.COLOR_BUFFER_BIT);
-            gl.uniform1f(Programs.shadowBoundingBoxProgram.size, Math.pow(2, i + 1) / sceneSize);
-            webGL2.bindTexture(Programs.shadowBoundingBoxProgram.potentialTexture, i == 0 ? tShadows2 : Mesher.tLevels[levels - i], 0);
+            gl.uniform1f(Programs.shadowBoundingBox.size, Math.pow(2, i + 1) / sceneSize);
+            webGL2.bindTexture(Programs.shadowBoundingBox.potentialTexture, i == 0 ? tShadows2 : Mesher.tLevels[levels - i], 0);
             gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
         }
 
 
         //Blur for the shadows
-        gl.useProgram(Programs.blurShadowProgram);
-        gl.uniform1f(Programs.blurShadowProgram.radius, blurShadowsRadius);
+        gl.useProgram(Programs.blurShadow);
+        gl.uniform1f(Programs.blurShadow.radius, blurShadowsRadius);
         gl.viewport(0, 0, sceneSize, sceneSize);
 
         gl.bindFramebuffer(gl.FRAMEBUFFER, fbShadows2);
-        webGL2.bindTexture(Programs.blurShadowProgram.shadowTexture, tShadows, 0);
-        gl.uniform2f(Programs.blurShadowProgram.axis, 0, 1 / sceneSize);
+        webGL2.bindTexture(Programs.blurShadow.shadowTexture, tShadows, 0);
+        gl.uniform2f(Programs.blurShadow.axis, 0, 1 / sceneSize);
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
         gl.bindFramebuffer(gl.FRAMEBUFFER, fbShadows);
-        webGL2.bindTexture(Programs.blurShadowProgram.shadowTexture, tShadows2, 0);
-        gl.uniform2f(Programs.blurShadowProgram.axis, 1 / sceneSize, 0);
+        webGL2.bindTexture(Programs.blurShadow.shadowTexture, tShadows2, 0);
+        gl.uniform2f(Programs.blurShadow.axis, 1 / sceneSize, 0);
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
     }
@@ -379,29 +379,29 @@ let render = () => {
         if (causticSteps < photonSteps) {
 
             //Caustics photon map saved in a plane
-            gl.useProgram(Programs.causticsProgram);
-            webGL2.bindTexture(Programs.causticsProgram.boundingBoxTexture, Mesher.tLevels[0], 0);
-            webGL2.bindTexture(Programs.causticsProgram.randomTexture, tRaysRandom, 1);
-            webGL2.bindTexture(Programs.causticsProgram.textureTriangles, Mesher.tTriangles, 2);
-            webGL2.bindTexture(Programs.causticsProgram.textureNormals, Mesher.tNormals, 3);
-            webGL2.bindTexture(Programs.causticsProgram.potentialTexture, tHelper, 4);
-            webGL2.bindTexture(Programs.causticsProgram.lowResPotential, tVoxelsLow, 5);
-            gl.uniform3f(Programs.causticsProgram.lightPosition, lightPos.x, lightPos.y, lightPos.z);
-            gl.uniform3f(Programs.causticsProgram.absorption, 1. - absorptionColor[0] / 255, 1. - absorptionColor[1] / 255, 1. - absorptionColor[2] / 255);
-            gl.uniform3f(Programs.causticsProgram.texture3DData, expandedTextureSize, resolution, expandedBuckets);
-            gl.uniform3f(Programs.causticsProgram.voxelLowData, lowResolutionTextureSize, lowGridPartitions, lowSideBuckets);
-            gl.uniform3f(Programs.causticsProgram.lightColor, lightColor[0] / 255, lightColor[1] / 255, lightColor[2] / 255);
-            gl.uniform1f(Programs.causticsProgram.reflectionPhotons, reflectionPhotons);
-            gl.uniform1f(Programs.causticsProgram.scale, floorScale);
-            gl.uniform1f(Programs.causticsProgram.photonEnergy, photonEnergy);
-            gl.uniform1f(Programs.causticsProgram.refract, refraction);
-            gl.uniform1f(Programs.causticsProgram.distanceAbsorptionScale, distanceAbsorptionScale);
-            gl.uniform1i(Programs.causticsProgram.refractions, refractions);
-            gl.uniform1i(Programs.causticsProgram.reflections, reflections);
-            gl.uniform1i(Programs.causticsProgram.iterations, maxIterations);
-            gl.uniform1i(Programs.causticsProgram.maxStepsPerBounce, maxStepsPerBounce);
-            gl.uniform1f(Programs.causticsProgram.dispersion, dispersion);
-            gl.uniform1f(Programs.causticsProgram.compactTextureSize, compactTextureSize);
+            gl.useProgram(Programs.caustics);
+            webGL2.bindTexture(Programs.caustics.boundingBoxTexture, Mesher.tLevels[0], 0);
+            webGL2.bindTexture(Programs.caustics.randomTexture, tRaysRandom, 1);
+            webGL2.bindTexture(Programs.caustics.textureTriangles, Mesher.tTriangles, 2);
+            webGL2.bindTexture(Programs.caustics.textureNormals, Mesher.tNormals, 3);
+            webGL2.bindTexture(Programs.caustics.potentialTexture, tHelper, 4);
+            webGL2.bindTexture(Programs.caustics.lowResPotential, tVoxelsLow, 5);
+            gl.uniform3f(Programs.caustics.lightPosition, lightPos.x, lightPos.y, lightPos.z);
+            gl.uniform3f(Programs.caustics.absorption, 1. - absorptionColor[0] / 255, 1. - absorptionColor[1] / 255, 1. - absorptionColor[2] / 255);
+            gl.uniform3f(Programs.caustics.texture3DData, expandedTextureSize, resolution, expandedBuckets);
+            gl.uniform3f(Programs.caustics.voxelLowData, lowResolutionTextureSize, lowGridPartitions, lowSideBuckets);
+            gl.uniform3f(Programs.caustics.lightColor, lightColor[0] / 255, lightColor[1] / 255, lightColor[2] / 255);
+            gl.uniform1f(Programs.caustics.reflectionPhotons, reflectionPhotons);
+            gl.uniform1f(Programs.caustics.scale, floorScale);
+            gl.uniform1f(Programs.caustics.photonEnergy, photonEnergy);
+            gl.uniform1f(Programs.caustics.refract, refraction);
+            gl.uniform1f(Programs.caustics.distanceAbsorptionScale, distanceAbsorptionScale);
+            gl.uniform1i(Programs.caustics.refractions, refractions);
+            gl.uniform1i(Programs.caustics.reflections, reflections);
+            gl.uniform1i(Programs.caustics.iterations, maxIterations);
+            gl.uniform1i(Programs.caustics.maxStepsPerBounce, maxStepsPerBounce);
+            gl.uniform1f(Programs.caustics.dispersion, dispersion);
+            gl.uniform1f(Programs.caustics.compactTextureSize, compactTextureSize);
 
 
             gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fbPhotons);
@@ -423,10 +423,10 @@ let render = () => {
             causticSteps = 0;
 
             //allocate the calculated vsPhotons on the fsCaustics texture
-            gl.useProgram(Programs.photonsGatherProgram);
-            gl.uniform1f(Programs.photonsGatherProgram.photonSize, photonSize);
-            webGL2.bindTexture(Programs.photonsGatherProgram.positions, tPhotons1, 0);
-            webGL2.bindTexture(Programs.photonsGatherProgram.colors, tPhotons2, 1);
+            gl.useProgram(Programs.photonsGather);
+            gl.uniform1f(Programs.photonsGather.photonSize, photonSize);
+            webGL2.bindTexture(Programs.photonsGather.positions, tPhotons1, 0);
+            webGL2.bindTexture(Programs.photonsGather.colors, tPhotons2, 1);
             gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fbCaustics);
             gl.clearColor(0, 0, 0, 0);
             gl.clear(gl.COLOR_BUFFER_BIT);
