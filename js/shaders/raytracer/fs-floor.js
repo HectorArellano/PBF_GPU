@@ -21,8 +21,8 @@ void main(void) {
     vec3 color = vec3(1.);
 
    //Lines for the grid
-   color *= clamp(step(mod(uv.x, .1), 0.095) * step(mod(uv.y, .1), 0.095), 0.5, 1.);
-   color *= clamp(step(mod(uv.x, 1.), 0.985) * step(mod(uv.y, 1.), 0.985), 0.3, 1.);
+   // color *= clamp(step(mod(uv.x, .1), 0.095) * step(mod(uv.y, .1), 0.095), 0.5, 1.);
+   // color *= clamp(step(mod(uv.x, 1.), 0.985) * step(mod(uv.y, 1.), 0.985), 0.3, 1.);
 
 
 //    color = mix(color, vec3(0.), vec3(step(mod(uv.x - 0.07, .5), 0.25)));

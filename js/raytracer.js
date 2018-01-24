@@ -12,8 +12,8 @@ import {Camera}                 from './utils/camera.js';
 
 //Set the canvas
 let canvas = document.querySelector("#canvas3D");
-canvas.height = 1000;
-canvas.width = canvas.height * 2.5;
+canvas.height = 700;
+canvas.width = canvas.height * 2.;
 canvas.style.width = String(canvas.width) + "px";
 canvas.style.height = String(canvas.height) + "px";
 webGL2.setContext(canvas);
@@ -22,30 +22,30 @@ webGL2.setContext(canvas);
 Programs.init();
 
 let camera = new Camera(canvas);
-let cameraDistance = 2.5;
+let cameraDistance = 3.;
 let FOV = 30;
 
 //For the Positionn Based Fluids
 let updateSimulation = true;
-let deltaTime = 0.01;
+let deltaTime = 0.005;
 let constrainsIterations = 4;
-let pbfResolution = 128;
-let voxelTextureSize = 2048;
-let particlesTextureSize = 1000;
+let pbfResolution = 256;
+let voxelTextureSize =  4096;
+let particlesTextureSize = 2000;
 let particlesPosition = [];
 let particlesVelocity = []
 let currentFrame = 0;
 
 //Change these values to change marching cubes resolution (128/2048/1024 or 256/4096/2048)
-let resolution = 128;
-let expandedTextureSize = 2048;
-let compressedTextureSize = 1024;
-let compactTextureSize = 1500;
+let resolution = 256;
+let expandedTextureSize = 4096;
+let compressedTextureSize = 2048;
+let compactTextureSize = 3000;
 let compressedBuckets = 8;
 let expandedBuckets = 16;
-let particleSize = 2;
-let blurSteps = 5;
-let range = 0.31;
+let particleSize = 1;
+let blurSteps = 2;
+let range = 0.1;
 let maxCells = 3.5;
 let fastNormals = false;
 
@@ -53,22 +53,20 @@ let fastNormals = false;
 let lowResolutionTextureSize = 256;
 let lowGridPartitions = 32;
 let lowSideBuckets = 8;
-let sceneSize = 1024;       //Requires to be a power of two for mip mapping
+let sceneSize = 4096;       //Requires to be a power of two for mip mapping
 let floorTextureSize = 2048;
 let floorScale = 5;
-let causticsSize = 2048;
+let causticsSize = 3000;
 let totalPhotons = causticsSize * causticsSize;
 let causticSteps = 0;
 
-let lockCamera = false;
-let refraction = 1.4;
-let maxIterations = 600.;
-let refractions = 7;
+let refraction = 1.2;
+let maxIterations = 1200.;
+let refractions = 8;
 let reflections = 3;
-let maxStepsPerBounce = 600;
-let screenResolution = 4;
-let absorptionColor = [46, 46, 46];
-let dispersion = 0.01;
+let maxStepsPerBounce = 800;
+let absorptionColor = [150, 150, 152];
+let dispersion = 0.0;
 let energyDecay = 0;
 let distanceAbsorptionScale = 6;
 let blurShadowsRadius = 30;
@@ -78,32 +76,30 @@ let kD = 0.;
 let kA = 0.;
 let shinny = 60;
 
-let lightAlpha = 36;
+let lightAlpha = 30;
 let lightBeta = 0;
 let lightIntensity = 2.5;
 let lightDistance = 3;
-let backgroundColor = 0.;
+let backgroundColor = 0.6;
 
-let photonTextureSize = 3;
-let photonSize = 2;
+let photonSize = 3;
 let photonEnergy = 0.2;
 let reflectionPhotons = 0.;
 let photonsToEmit = 1;
 let photonSteps = 1;
-let radianceRadius = 3.6;
-let radiancePower = 0.19;
+let radianceRadius = 5.6;
+let radiancePower = 0.2;
 
-let rtCaustics = false;
 let calculateShadows = true;
 let calculateCaustics = true;
-let shadowIntensity = 1;
+let shadowIntensity = 0.3;
 
 let killRay = 0.02;
-let disableAcceleration = false;
 let lightColor = [255, 255, 255];
 let materialColor = [255, 255, 255];
 
 let radius = pbfResolution * 0.45;
+let radius2 = pbfResolution * 0.07;
 //Generate the position and velocity
 for (let i = 0; i < pbfResolution; i++) {
     for (let j = 0; j < pbfResolution; j++) {
@@ -116,8 +112,14 @@ for (let i = 0; i < pbfResolution; i++) {
 
             if (x * x + y * y + z * z < radius * radius && k < pbfResolution * 0.4) {
                 particlesPosition.push(i, j, k, 1);
-                particlesVelocity.push(0, 0, 0, 0); //Velocity is zero for all the particles.
+                particlesVelocity.push(0, 0, 0, 0);
             }
+
+            // y = j - pbfResolution * 0.8;
+            // if (x * x + y * y + z * z < radius2 * radius2) {
+            //     particlesPosition.push(i, j, k, 1);
+            //     particlesVelocity.push(0, -20, 0, 0);
+            // }
         }
     }
 }
@@ -276,7 +278,6 @@ let render = () => {
         Mesher.generateMesh(PBF.positionTexture, PBF.totalParticles, pbfResolution, particleSize, blurSteps, range, maxCells, fastNormals);
 
         currentFrame++;
-
     }
 
     //Ray tracing section
@@ -527,12 +528,11 @@ let render = () => {
     gl.generateMipmap(gl.TEXTURE_2D);
     gl.bindTexture(gl.TEXTURE_2D, null);
 
+    //Check the simulation
+    renderParticles(0, 0, 700, 700, null, true);
 
     //Checking texture results
-    checkTexture(tScreenPositions, 0, 500, 500, 500, null, true, true);
-    checkTexture(tScreenNormals, 500, 500, 500, 500, null, false, true);
-    checkTexture(tVoxelsHigh, 0, 0, 500, 500, null, false, true);
-    checkTexture(tScene2, 500, 0, 500, 500, null, false, true);
+    checkTexture(tScene2, 700, 0, 700, 700, null, false, true);
 
 };
 

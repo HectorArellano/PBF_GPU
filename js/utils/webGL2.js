@@ -75,7 +75,7 @@ const createTexture2D = (width, height, internalFormat, format, maxFilter, minFi
         let m = memory / 8; //<----- bits to bytes
         m /= 1000000; //<----- bytes to mega bytes
 
-        //console.log("current GPU memory usage: " + m + " Mb");
+        console.log("current GPU memory usage: " + m + " Mb");
 
         return texture;
     } else {
