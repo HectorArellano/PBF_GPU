@@ -157,6 +157,19 @@ let init = (particlesPosition, particlesVelocity, _bucketSize, _voxelsTextureSiz
 }
 
 
+//Fucntion used to reset the simulation
+let reset = (particlesPositions, particlesVelocities) => {
+
+    gl.bindTexture(gl.TEXTURE_2D, positionTexture);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, particlesTextureSize, particlesTextureSize, 0, gl.RGBA, gl.FLOAT, new Float32Array(particlesPositions));
+    gl.bindTexture(gl.TEXTURE_2D, null);
+
+    gl.bindTexture(gl.TEXTURE_2D, velocityTexture);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, particlesTextureSize, particlesTextureSize, 0, gl.RGBA, gl.FLOAT, new Float32Array(particlesVelocities));
+    gl.bindTexture(gl.TEXTURE_2D, null);
+}
+
+
 //=======================================================================================================
 // Simulation and Rendering (Particle Based Fluids
 //=======================================================================================================
@@ -269,6 +282,7 @@ let updateFrame = (acceleration, deltaTime, constrainsIterations) => {
 export {
     init,
     updateFrame,
+    reset,
     totalParticles,
     positionTexture,
     velocityTexture,
