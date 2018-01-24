@@ -1,10 +1,10 @@
-import {gl}                     from './utils/webGL2.js';
-import * as webGL2              from './utils/webGL2.js';
-import * as PBF                 from './pbf.js';
-import * as Mesher              from './mesher.js';
+import {gl}                     from './webGL/webGL2.js';
+import * as webGL2              from './webGL/webGL2.js';
+import * as PBF                 from './positionBasedFluids/pbf.js';
+import * as Mesher              from './marchingCubes/mesher.js';
 import * as Programs            from './shaders.js';
 import {Params}                 from './parameters.js';
-import {Camera}                 from './utils/camera.js';
+import {Camera}                 from './camera.js';
 
 //=======================================================================================================
 // Variables & Constants

@@ -3,10 +3,10 @@ Module used to allocate the neighborhood of a particle, based from the original 
 based on https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_ch29.html
  */
 
-import {gl}             from '../utils/webGL2.js';
-import * as webGL2      from '../utils/webGL2.js';
+import {gl}             from '../webGL/webGL2.js';
+import * as webGL2      from '../webGL/webGL2.js';
 import {vsNeighbors}    from '../shaders/neighbors/vs-neighbors.js';
-import {fsColor}        from '../shaders/utils/fs-simpleColor.js';
+import {fsColor}        from '../shaders/general/fs-simpleColor.js';
 
 let started = false;
 let searchProgram;

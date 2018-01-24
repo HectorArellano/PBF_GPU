@@ -1,9 +1,9 @@
-import {gl}                     from './utils/webGL2.js';
-import * as webGL2              from './utils/webGL2.js';
-import {vsParticles}            from './shaders/utils/vs-renderParticles.js'
-import {fsColor}                from './shaders/utils/fs-simpleColor.js';
-import {fsTextureColor}         from './shaders/utils/fs-simpleTexture.js';
-import {vsQuad}                 from './shaders/utils/vs-quad.js';
+import {gl}                     from './webGL/webGL2.js';
+import * as webGL2              from './webGL/webGL2.js';
+import {vsParticles}            from './shaders/general/vs-renderParticles.js'
+import {fsColor}                from './shaders/general/fs-simpleColor.js';
+import {fsTextureColor}         from './shaders/general/fs-simpleTexture.js';
+import {vsQuad}                 from './shaders/general/vs-quad.js';
 import {vsHighResGrid}          from './shaders/raytracer/vs-highResGrid.js';
 import {vsLowResGrid}           from './shaders/raytracer/vs-lowResGrid.js';
 import {vsDeferredTriangles}    from './shaders/raytracer/vs-deferredTriangles.js';

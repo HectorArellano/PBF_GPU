@@ -1,19 +1,19 @@
-import {gl}                         from './utils/webGL2.js';
-import * as webGL2                  from './utils/webGL2.js';
-import  {ti5, trianglesOnVoxels}    from './utils/marchingCubesTables.js';
+import {gl}                         from '../webGL/webGL2.js';
+import * as webGL2                  from '../webGL/webGL2.js';
+import  {ti5, trianglesOnVoxels}    from './marchingCubesTables.js';
 
 //Shaders
-import {vsQuad}                     from './shaders/utils/vs-quad.js';
-import {fsColor}                    from './shaders/utils/fs-simpleColor.js';
-import {fsTextureColor}             from './shaders/utils/fs-simpleTexture.js';
-import {vsParticlesPlacement}       from './shaders/marchingCubes/vs-partticlesPlacement.js';
-import {blur2D}                     from './shaders/marchingCubes/fs-blu2D.js';
-import {blurDepth}                  from './shaders/marchingCubes/fs-blurDepth.js';
-import {getCorners}                 from './shaders/marchingCubes/fs-getCorners.js';
-import {splitChannels}              from './shaders/marchingCubes/fs-splitChannels.js';
-import {marchCase}                  from './shaders/marchingCubes/fs-marchCase.js';
-import {generatePyramid}            from './shaders/marchingCubes/fs-generatePyramid.js';
-import {generateTriangles}          from './shaders/marchingCubes/fs-generateTriangles.js';
+import {vsQuad}                     from '../shaders/general/vs-quad.js';
+import {fsColor}                    from '../shaders/general/fs-simpleColor.js';
+import {fsTextureColor}             from '../shaders/general/fs-simpleTexture.js';
+import {vsParticlesPlacement}       from '../shaders/marchingCubes/vs-partticlesPlacement.js';
+import {blur2D}                     from '../shaders/marchingCubes/fs-blu2D.js';
+import {blurDepth}                  from '../shaders/marchingCubes/fs-blurDepth.js';
+import {getCorners}                 from '../shaders/marchingCubes/fs-getCorners.js';
+import {splitChannels}              from '../shaders/marchingCubes/fs-splitChannels.js';
+import {marchCase}                  from '../shaders/marchingCubes/fs-marchCase.js';
+import {generatePyramid}            from '../shaders/marchingCubes/fs-generatePyramid.js';
+import {generateTriangles}          from '../shaders/marchingCubes/fs-generateTriangles.js';
 
 
 //=======================================================================================================

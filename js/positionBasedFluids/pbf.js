@@ -1,16 +1,16 @@
-import {gl}                     from './utils/webGL2.js';
-import * as webGL2              from './utils/webGL2.js';
-import {searchNeighbords}       from './utils/neightborhoodSearch.js';
+import {gl}                     from '../webGL/webGL2.js';
+import * as webGL2              from '../webGL/webGL2.js';
+import {searchNeighbords}       from './neightborhoodSearch.js';
 
 //Shaders
-import {predictPositions}       from './shaders/PBF/vs-applyForces.js';
-import {integrateVelocity}      from './shaders/PBF/vs-integrateVelocity.js';
-import {calculateConstrains}    from './shaders/PBF/vs-calculateConstrains.js'
-import {calculateDisplacements} from './shaders/PBF/vs-calculateDisplacements.js'
-import {calculateViscosity}     from './shaders/PBF/vs-calculateViscosity.js'
-import {vsQuad}                 from './shaders/utils/vs-quad.js';
-import {fsTextureColor}         from './shaders/utils/fs-simpleTexture.js';
-import {fsColor}                from './shaders/utils/fs-simpleColor.js';
+import {predictPositions}       from '../shaders/PBF/vs-applyForces.js';
+import {integrateVelocity}      from '../shaders/PBF/vs-integrateVelocity.js';
+import {calculateConstrains}    from '../shaders/PBF/vs-calculateConstrains.js'
+import {calculateDisplacements} from '../shaders/PBF/vs-calculateDisplacements.js'
+import {calculateViscosity}     from '../shaders/PBF/vs-calculateViscosity.js'
+import {vsQuad}                 from '../shaders/general/vs-quad.js';
+import {fsTextureColor}         from '../shaders/general/fs-simpleTexture.js';
+import {fsColor}                from '../shaders/general/fs-simpleColor.js';
 
 
 //=======================================================================================================
