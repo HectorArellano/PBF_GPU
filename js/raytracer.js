@@ -21,39 +21,12 @@ webGL2.setContext(canvas);
 //Parameters for the simulation, this is done as a class to allow parameters modifications
 //it also allows to have different parameters in different files.
 let params = new Params();
+let particlesData = params.generateParticles();
 
 //Initiate the shaders programs
 Programs.init();
 
 let camera = new Camera(canvas);
-
-let particlesPosition = [];
-let particlesVelocity = [];
-let radius = params.pbfResolution * 0.45;
-let radius2 = params.pbfResolution * 0.07;
-//Generate the position and velocity
-for (let i = 0; i < params.pbfResolution; i++) {
-    for (let j = 0; j < params.pbfResolution; j++) {
-        for (let k = 0; k < params.pbfResolution; k++) {
-
-            //Condition for the particle position and existence
-            let x = i - params.pbfResolution * 0.5;
-            let y = j - params.pbfResolution * 0.5;
-            let z = k - params.pbfResolution * 0.5;
-
-            if (x * x + y * y + z * z < radius * radius && k < params.pbfResolution * 0.4) {
-                particlesPosition.push(i, j, k, 1);
-                particlesVelocity.push(0, 0, 0, 0);
-            }
-
-            // y = j - pbfResolution * 0.8;
-            // if (x * x + y * y + z * z < radius2 * radius2) {
-            //     particlesPosition.push(i, j, k, 1);
-            //     particlesVelocity.push(0, -20, 0, 0);
-            // }
-        }
-    }
-}
 
 //Generate random positions for the photons
 let arrayRays = [];
@@ -118,9 +91,7 @@ gl.bindTexture(gl.TEXTURE_2D, null);
 
 
 //Initiate the position based fluids solver
-PBF.init(particlesPosition, particlesVelocity, params.pbfResolution, params.voxelTextureSize, params.particlesTextureSize);
-particlesPosition = null;
-particlesVelocity = null;
+PBF.init(particlesData.particlesPosition, particlesData.particlesVelocity, params.pbfResolution, params.voxelTextureSize, params.particlesTextureSize);
 
 //Initiate the mesher generator
 Mesher.init(params.resolution, params.expandedTextureSize, params.compressedTextureSize, params.compactTextureSize, params.compressedBuckets, params.expandedBuckets);

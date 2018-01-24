@@ -76,7 +76,37 @@ export class Params {
         this.causticsSize = 3000;
         this.totalPhotons = this.causticsSize * this.causticsSize;
         this.causticSteps = 0;
+
     }
+
+    //Generate the particles, this is done here to have different particles setup in
+    //different params files
+    generateParticles = ()=> {
+
+        let particlesPosition = [];
+        let particlesVelocity = [];
+        let radius = this.pbfResolution * 0.45;
+        //Generate the position and velocity
+        for (let i = 0; i < this.pbfResolution; i++) {
+            for (let j = 0; j < this.pbfResolution; j++) {
+                for (let k = 0; k < this.pbfResolution; k++) {
+
+                    //Condition for the particle position and existence
+                    let x = i - this.pbfResolution * 0.5;
+                    let y = j - this.pbfResolution * 0.5;
+                    let z = k - this.pbfResolution * 0.5;
+
+                    if (x * x + y * y + z * z < radius * radius && k < this.pbfResolution * 0.4) {
+                        particlesPosition.push(i, j, k, 1);
+                        particlesVelocity.push(0, 0, 0, 0);
+                    }
+                }
+            }
+        }
+
+        return {particlesPosition: particlesPosition, particlesVelocity: particlesVelocity}
+    }
+
 }
 
 
