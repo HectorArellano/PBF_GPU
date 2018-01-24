@@ -82,7 +82,7 @@ let lightAlpha = 36;
 let lightBeta = 0;
 let lightIntensity = 2.5;
 let lightDistance = 3;
-let backgroundColor = 0.65;
+let backgroundColor = 0.;
 
 let photonTextureSize = 3;
 let photonSize = 2;
@@ -133,7 +133,7 @@ for (let i = 0; i < totalPhotons; i++) arrayRays.push(Math.random(), Math.random
 
 
 //Textures
-let tHelper = webGL2.createTexture2D(expandedTextureSize, expandedTextureSize, gl.RGBA32F, gl.RGBA, gl.NEAREST, gl.NEAREST, gl.FLOAT);
+let tVoxelsHigh = webGL2.createTexture2D(expandedTextureSize, expandedTextureSize, gl.RGBA32F, gl.RGBA, gl.NEAREST, gl.NEAREST, gl.FLOAT);
 let tVoxelsLow = webGL2.createTexture2D(lowResolutionTextureSize, lowResolutionTextureSize, gl.RGBA32F, gl.RGBA, gl.NEAREST, gl.NEAREST, gl.FLOAT);
 let tScreenPositions = webGL2.createTexture2D(sceneSize, sceneSize, gl.RGBA32F, gl.RGBA, gl.NEAREST, gl.NEAREST, gl.FLOAT);
 let tScreenNormals = webGL2.createTexture2D(sceneSize, sceneSize, gl.RGBA32F, gl.RGBA, gl.NEAREST, gl.NEAREST, gl.FLOAT);
@@ -152,7 +152,7 @@ let tScene2 = webGL2.createTexture2D(sceneSize, sceneSize, gl.RGBA8, gl.RGBA, gl
 
 
 //Framebuffers
-let fbHelper = webGL2.createDrawFramebuffer(tHelper, true);
+let fbVoxelsHigh = webGL2.createDrawFramebuffer(tVoxelsHigh, true);
 let fbVoxelsLow = webGL2.createDrawFramebuffer(tVoxelsLow);
 let fbDeferred = webGL2.createDrawFramebuffer([tScreenPositions, tScreenNormals], true);
 let fbFloorLines = webGL2.createDrawFramebuffer(tFloorLines);
@@ -287,7 +287,7 @@ let render = () => {
     //Generate the high resolution grid for the ray tracer
     gl.useProgram(Programs.highResGrid);
     webGL2.bindTexture(Programs.highResGrid.verticesTexture, Mesher.tVoxelsOffsets, 0);
-    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fbHelper);
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fbVoxelsHigh);
     gl.viewport(0, 0, expandedTextureSize, expandedTextureSize);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     gl.enable(gl.DEPTH_TEST);
@@ -332,7 +332,7 @@ let render = () => {
         gl.useProgram(Programs.floorShadows);
         webGL2.bindTexture(Programs.floorShadows.textureTriangles, Mesher.tTriangles, 0);
         webGL2.bindTexture(Programs.floorShadows.textureNormals, Mesher.tNormals, 1);
-        webGL2.bindTexture(Programs.floorShadows.potentialTexture, tHelper, 2);
+        webGL2.bindTexture(Programs.floorShadows.potentialTexture, tVoxelsHigh, 2);
         webGL2.bindTexture(Programs.floorShadows.lowResPotential, tVoxelsLow, 3);
         gl.uniform1i(Programs.floorShadows.iterations, maxIterations);
         gl.uniform1i(Programs.floorShadows.maxStepsPerBounce, maxStepsPerBounce);
@@ -389,7 +389,7 @@ let render = () => {
             webGL2.bindTexture(Programs.caustics.randomTexture, tRaysRandom, 1);
             webGL2.bindTexture(Programs.caustics.textureTriangles, Mesher.tTriangles, 2);
             webGL2.bindTexture(Programs.caustics.textureNormals, Mesher.tNormals, 3);
-            webGL2.bindTexture(Programs.caustics.potentialTexture, tHelper, 4);
+            webGL2.bindTexture(Programs.caustics.potentialTexture, tVoxelsHigh, 4);
             webGL2.bindTexture(Programs.caustics.lowResPotential, tVoxelsLow, 5);
             gl.uniform3f(Programs.caustics.lightPosition, lightPos.x, lightPos.y, lightPos.z);
             gl.uniform3f(Programs.caustics.absorption, 1. - absorptionColor[0] / 255, 1. - absorptionColor[1] / 255, 1. - absorptionColor[2] / 255);
@@ -453,7 +453,7 @@ let render = () => {
     gl.useProgram(Programs.raytracer);
     webGL2.bindTexture(Programs.raytracer.textureTriangles, Mesher.tTriangles, 0);
     webGL2.bindTexture(Programs.raytracer.textureNormals, Mesher.tNormals, 1);
-    webGL2.bindTexture(Programs.raytracer.potentialTexture, tHelper, 2);
+    webGL2.bindTexture(Programs.raytracer.potentialTexture, tVoxelsHigh, 2);
     webGL2.bindTexture(Programs.raytracer.lowResPotential, tVoxelsLow, 3);
     webGL2.bindTexture(Programs.raytracer.positions, tScreenPositions, 4);
     webGL2.bindTexture(Programs.raytracer.normals, tScreenNormals, 5);
@@ -490,10 +490,11 @@ let render = () => {
     //Make the composition
     gl.bindFramebuffer(gl.FRAMEBUFFER, fbScene2);
     let bg = backgroundColor;
-    gl.clearColor(bg, bg, bg, 1);
+    gl.clearColor(bg, bg, bg, 0);
     gl.clear(gl.COLOR_BUFFER_BIT);
     gl.viewport(0, 0, sceneSize, sceneSize);
-    
+
+
     //Rendering the floor with shadows and caustics
     gl.useProgram(Programs.renderFloor);
     webGL2.bindTexture(Programs.renderFloor.floorTexture, tFloorLines, 0);
@@ -509,11 +510,29 @@ let render = () => {
     gl.uniform3f(Programs.renderFloor.lightColor, lightColor[0] / 255, lightColor[1] / 255, lightColor[2] / 255);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
+
+    //Render the raytraced image on top of the plane.
+    gl.useProgram(Programs.texture);
+    gl.uniform1i(Programs.texture.forceAlpha, false);
+    webGL2.bindTexture(Programs.texture.dataTexture, tScene, 0);
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    gl.disable(gl.BLEND);
+    gl.clearColor(0, 0, 0, 0);
+    gl.blendEquation(gl.FUNC_ADD);
+    gl.blendFuncSeparate(gl.ONE, gl.ONE, gl.ONE, gl.ONE);
+
+    gl.bindTexture(gl.TEXTURE_2D, tScene2);
+    gl.generateMipmap(gl.TEXTURE_2D);
+    gl.bindTexture(gl.TEXTURE_2D, null);
+
+
     //Checking texture results
-    checkTexture(tScene, 0, 500, 500, 500, null, true, true);
-    checkTexture(tRadiance2, 500, 500, 500, 500, null, false, true);
-    checkTexture(tScreenPositions, 0, 0, 500, 500, null, false, true);
-    checkTexture(tScreenNormals, 500, 0, 500, 500, null, false, true);
+    checkTexture(tScreenPositions, 0, 500, 500, 500, null, true, true);
+    checkTexture(tScreenNormals, 500, 500, 500, 500, null, false, true);
+    checkTexture(tVoxelsHigh, 0, 0, 500, 500, null, false, true);
+    checkTexture(tScene2, 500, 0, 500, 500, null, false, true);
 
 };
 

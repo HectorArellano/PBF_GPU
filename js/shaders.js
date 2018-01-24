@@ -17,11 +17,14 @@ import {fsCaustics}             from './shaders/raytracer/fs-caustics.js';
 import {vsPhotons}              from './shaders/raytracer/vs-photons.js';
 import {fsRadiance}             from './shaders/raytracer/fs-radiance.js';
 import {fsRaytracer}            from './shaders/raytracer/fs-raytracer.js';
+import {vsRenderFloor}          from './shaders/raytracer/vs-renderFloor.js';
+import {fsRenderFloor}          from './shaders/raytracer/fs-renderFloor.js';
 
 
 //=======================================================================================================
 // Shader programs
 //=======================================================================================================
+
 
 export let renderParticles;
 export let texture;
@@ -36,6 +39,7 @@ export let caustics;
 export let photonsGather;
 export let radiance;
 export let raytracer;
+export let renderFloor;
 
 
 //=======================================================================================================
@@ -174,5 +178,18 @@ export function init() {
     raytracer.lightColor = gl.getUniformLocation(raytracer, "uLightColor");
     raytracer.materialColor = gl.getUniformLocation(raytracer, "uMaterialColor");
     raytracer.compactTextureSize = gl.getUniformLocation(raytracer, "uCompactSize");
+
+    renderFloor = webGL2.generateProgram(vsRenderFloor, fsRenderFloor);
+    renderFloor.cameraMatrix = gl.getUniformLocation(renderFloor, "uCameraMatrix");
+    renderFloor.perspectiveMatrix = gl.getUniformLocation(renderFloor, "uPMatrix");
+    renderFloor.backgroundColor = gl.getUniformLocation(renderFloor, "uBg");
+    renderFloor.scaler = gl.getUniformLocation(renderFloor, "uScaler");
+    renderFloor.lightData = gl.getUniformLocation(renderFloor, "uLightData");
+    renderFloor.shadowTexture = gl.getUniformLocation(renderFloor, "uShadows");
+    renderFloor.scaleShadow = gl.getUniformLocation(renderFloor, "uScaleShadow");
+    renderFloor.shadowIntensity = gl.getUniformLocation(renderFloor, "uShadowIntensity");
+    renderFloor.radianceTexture = gl.getUniformLocation(renderFloor, "uRadiance");
+    renderFloor.floorTexture = gl.getUniformLocation(renderFloor, "uFloor");
+    renderFloor.lightColor = gl.getUniformLocation(renderFloor, "uLightColor");
 
 }
