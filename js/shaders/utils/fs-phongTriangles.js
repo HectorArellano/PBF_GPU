@@ -23,7 +23,7 @@ void main() {
     float specular = pow(max(dot(normalize(reflect(light, normal)), -eye), 0.), 3.);
     float diffuse = abs(dot(light, normal));
     
-    color = vec4(0.1 * specular * vec3(1.) + 0.9 * diffuse * vec3(1.), 1.);
+    color = vec4(0.5 * normal + vec3(0.5), 1.);
 }
 
 `;

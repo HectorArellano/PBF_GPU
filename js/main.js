@@ -39,12 +39,18 @@ let particlesVelocity = []
 let currentFrame = 0;
 
 //Change these values to change marching cubes resolution (128/2048/1024 or 256/4096/2048)
-let resolution = 128;
-let expandedTextureSize = 2048;
-let compressedTextureSize = 1024;
-let compactTextureSize = 1500;
-let compressedBuckets = 8;
+let resolution = 256;
+
+let expandedTextureSize = 4096;
 let expandedBuckets = 16;
+
+let compressedTextureSize = 2048;
+let compressedBuckets = 8;
+
+let depthLevels = 64;
+
+let compactTextureSize = 3000;
+
 let particleSize = 2;
 let blurSteps = 5;
 let range = 0.31;
@@ -98,7 +104,7 @@ particlesPosition = null;
 particlesVelocity = null;
 
 //Initiate the mesher generator
-Mesher.init(resolution, expandedTextureSize, compressedTextureSize, compactTextureSize, compressedBuckets, expandedBuckets);
+Mesher.init(resolution, expandedTextureSize, compressedTextureSize, compactTextureSize, compressedBuckets, expandedBuckets, depthLevels);
 
 let render = () => {
 

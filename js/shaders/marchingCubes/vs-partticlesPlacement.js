@@ -26,7 +26,7 @@ void main() {
     gP.y = fract(gP.y);
     gP = 2. * gP - vec2(1.);
 
-    colorData = 0.7 * data.a * vec4(equal(vec4(depthLevel), vec4(0., 1., 2., 3.)));
+    colorData = vec4(equal(vec4(depthLevel), vec4(0., 1., 2., 3.)));
 
     gl_PointSize = uSize;
     gl_Position = vec4(gP, 0., 1.0);

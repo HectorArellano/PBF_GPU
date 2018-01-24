@@ -5,6 +5,8 @@ precision highp sampler2D;
 
 uniform sampler2D uDataTexture;
 uniform float uSteps;
+uniform float uDepth;
+
 
 in vec2 uv;
 out vec4 colorData;
@@ -26,7 +28,7 @@ void main(void) {
     float depthLevel = 0.;
 
     //Obtain the depth level for the corresponding fragment.
-    float currentDepthLevel = floor(pos3D.y / 64.); //<<<----- TODO: estoy hay que darle un vistazo
+    float currentDepthLevel = floor(pos3D.y / uDepth); //<<<----- TODO: estoy hay que darle un vistazo
 
     for (float i = 0.; i <= 2. * uSteps; i += 1.) {
         float j = i - uSteps;
@@ -35,7 +37,7 @@ void main(void) {
         newPos3D = pos3D + j * vec3(0., 1., 0.);
 
         //Obtain the z level for the new fragment to read.
-        depthLevel = floor(newPos3D.y / 64.);  //<<<----- TODO: estoy hay que darle un vistazo
+        depthLevel = floor(newPos3D.y / uDepth);  //<<<----- TODO: estoy hay que darle un vistazo
 
         uv = u3D.x * (newPos3D.xz + u3D.y * vec2(mod(newPos3D.y, u3D.z), floor(newPos3D.y / u3D.z)) + vec2(0.5));;
         uv.y = fract(uv.y);
