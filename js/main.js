@@ -29,8 +29,8 @@ let FOV = 30;
 
 //For the Positionn Based Fluids
 let updateSimulation = true;
-let deltaTime = 0.005;
-let constrainsIterations = 5;
+let deltaTime = 0.01;
+let constrainsIterations = 6;
 let pbfResolution = 128;
 let voxelTextureSize = 2048;
 let particlesTextureSize = 2000;
@@ -39,25 +39,25 @@ let particlesVelocity = []
 let currentFrame = 0;
 
 //Change these values to change marching cubes resolution (128/2048/1024 or 256/4096/2048)
-let resolution = 128;
+let resolution = 256;
 
-let expandedTextureSize = 2048;
+let expandedTextureSize = 4096;
 let expandedBuckets = 16;
 
-let compressedTextureSize = 1024;
+let compressedTextureSize = 2048;
 let compressedBuckets = 8;
 
 let depthLevels = 64;
 
 let compactTextureSize = 3000;
 
-let particleSize = 1.;
-let blurSteps = 30;
-let range = 0.1;
+let particleSize = 2.;
+let blurSteps = 24
+let range = 0.16;
 let maxCells = 3.5;
-let fastNormals = true;
+let fastNormals = false;
+let radius = pbfResolution * 0.39;
 
-let radius = pbfResolution * 0.45;
 //Generate the position and velocity
 for (let i = 0; i < pbfResolution; i++) {
     for (let j = 0; j < pbfResolution; j++) {
@@ -132,7 +132,7 @@ let render = () => {
 
     //Render particles
     gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
-    gl.viewport(canvas.height, 0, canvas.height, canvas.height);
+    gl.viewport(canvas.height * 2 / 3, 0, canvas.height, canvas.height);
     gl.useProgram(renderParticlesProgram);
     webGL2.bindTexture(renderParticlesProgram.positionTexture, PBF.positionTexture, 0);
     gl.uniform1f(renderParticlesProgram.scale, pbfResolution);

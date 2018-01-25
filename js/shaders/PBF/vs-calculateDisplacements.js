@@ -101,7 +101,7 @@ void main() {
 
     //Collision handling
     vec3 center = vec3(uBucketData.y * 0.5);
-    float radius = uBucketData.y * 0.49;
+    float radius = uBucketData.y * 0.4;
     vec3 normal = endPosition - center;
     float n = length(normal);
     float distance = n -  radius;

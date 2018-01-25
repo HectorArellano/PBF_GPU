@@ -18,7 +18,7 @@ void main(void) {
     float sum = 1.;
     float m = 1.;
     float n = float(uSteps);
-    float border = 1.;
+    float border = .1;
 
 
     //Obtain the 3D pos of the corresponding fragment.

@@ -12,7 +12,7 @@ out vec4 colorData;
 
 void main(void) {
 
-    float border = 1.;
+    float border = .1;
     
     vec4 blend = vec4(0.);
     float sum = 1.;
