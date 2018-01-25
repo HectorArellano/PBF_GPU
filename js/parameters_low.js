@@ -14,22 +14,22 @@ export class Params {
         //Position based fluids parameters
         this.updateSimulation = true;
         this.deltaTime = 0.01;
-        this.constrainsIterations = 4;
-        this.pbfResolution = 64;
-        this.voxelTextureSize = 512;
+        this.constrainsIterations = 5;
+        this.pbfResolution = 128;
+        this.voxelTextureSize = 2048;
         this.particlesTextureSize = 1000;
 
         //Marching cubes parameters, Change these values to change marching cubes resolution (128/2048/1024 or 256/4096/2048)
-        this.resolution = 128;
-        this.expandedTextureSize = 2048;
+        this.resolution = 256;
+        this.expandedTextureSize = 4096;
         this.expandedBuckets = 16;
-        this.compressedTextureSize = 1024;
+        this.compressedTextureSize = 2048;
         this.compressedBuckets = 8;
         this.depthLevels = 64;
-        this.compactTextureSize = 1000;
-        this.particleSize = 4;
-        this.blurSteps = 4;
-        this.range = 0.5;
+        this.compactTextureSize = 2500;
+        this.particleSize = 2;
+        this.blurSteps = 24;
+        this.range = 0.1;
         this.maxCells = 3.5;
         this.fastNormals = false;
         this.updateMesh = true;
