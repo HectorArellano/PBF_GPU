@@ -4,20 +4,22 @@ precision highp float;
 precision highp sampler2D;
 
 uniform sampler2D uDataTexture;
-uniform float uSteps;
+uniform int uSteps;
 uniform float uDepth;
 
 
 in vec2 uv;
 out vec4 colorData;
 
-//strength of the pixel to blur against the other ones used.
-const float coefficient = 2.;
-
 uniform vec3 u3D;
-const float border = 1.;
-
+    
 void main(void) {
+
+    float sum = 1.;
+    float m = 1.;
+    float n = float(uSteps);
+    float border = 1.;
+
 
     //Obtain the 3D pos of the corresponding fragment.
     vec2 pos = floor(uv / u3D.x);
@@ -28,20 +30,19 @@ void main(void) {
     float depthLevel = 0.;
 
     //Obtain the depth level for the corresponding fragment.
-    float currentDepthLevel = floor(pos3D.y / uDepth); //<<<----- TODO: estoy hay que darle un vistazo
+    float currentDepthLevel = floor(pos3D.y / uDepth); 
 
-    for (float i = 0.; i <= 2. * uSteps; i += 1.) {
-        float j = i - uSteps;
-
+    for (int i = 0; i < 2 * uSteps; i += 1) {
+        float j = float(i) - 0.5 * float(uSteps);
+        float k = float(i);
         //Obtain the new 3D pos of the fragment to use for blurring.
-        newPos3D = pos3D + j * vec3(0., 1., 0.);
+        newPos3D = pos3D - j * vec3(0., 1., 0.);
 
         //Obtain the z level for the new fragment to read.
-        depthLevel = floor(newPos3D.y / uDepth);  //<<<----- TODO: estoy hay que darle un vistazo
+        depthLevel = floor(newPos3D.y / uDepth);  
 
         uv = u3D.x * (newPos3D.xz + u3D.y * vec2(mod(newPos3D.y, u3D.z), floor(newPos3D.y / u3D.z)) + vec2(0.5));;
         uv.y = fract(uv.y);
-        float k = j == 0. ? coefficient : 1.;
 
         vec4 newBucket = texture(uDataTexture, uv);
 
@@ -50,10 +51,12 @@ void main(void) {
         //channel differences between the two fragments.
 
         vec3 cases = vec3(bvec3(depthLevel < currentDepthLevel, depthLevel == currentDepthLevel, depthLevel > currentDepthLevel));
-        blend += k * (vec4(0., newBucket.rgb) * cases.x + newBucket * cases.y + vec4(newBucket.gba, 0.) * cases.z);
+        blend += m * (vec4(0., newBucket.rgb) * cases.x + newBucket * cases.y + vec4(newBucket.gba, 0.) * cases.z);
+        m *= (n - k) / (k + 1.);
+        sum += m;
     }
 
-    blend /= (2. * uSteps + coefficient);
+    blend /= sum;
 
     //This avoids to spread information between the different buckets.
     blend *= float(mod(pos.x, u3D.y) > border && mod(pos.y, u3D.y) > border && mod(pos.x, u3D.y) < u3D.y - 1. - border && mod(pos.y, u3D.y) < u3D.y - 1. - border);
