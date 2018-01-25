@@ -8,13 +8,16 @@ in vec2 uv;
 uniform sampler2D uTT;
 uniform sampler2D uTN;
 
+out vec3 position;
+out vec3 normal;
+
 layout(location = 0) out vec4 trianglesPositions;
 layout(location = 1) out vec4 trianglesNormals;
 
 void main() {
 
-    trianglesPositions = texture(uTT, uv);
-    trianglesNormals = texture(uTN, uv);
+    trianglesPositions = vec4(position, 1.);
+    trianglesNormals = vec4(normal, 1.);
     
 }
 
