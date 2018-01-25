@@ -15,7 +15,7 @@ void main(void) {
 
     int tSize = textureSize(uTT, 0).x;
     float textureSize = float(tSize);
-    uv = vec2(float(gl_VertexID % tSize) + 0.5, (floor(float(gl_VertexID) / textureSize)) + 0.5) / textureSize;
+    vec2 uv = vec2(float(gl_VertexID % tSize) + 0.5, (floor(float(gl_VertexID) / textureSize)) + 0.5) / textureSize;
     
     position = texture(uTT, uv).rgb;
     normal = texture(uTN, uv).rgb;

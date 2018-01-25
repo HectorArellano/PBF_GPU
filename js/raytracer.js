@@ -3,7 +3,7 @@ import * as webGL2              from './webGL/webGL2.js';
 import * as PBF                 from './positionBasedFluids/pbf.js';
 import * as Mesher              from './marchingCubes/mesher.js';
 import * as Programs            from './shaders.js';
-import {Params}                 from './parameters_high.js';
+import {Params}                 from './parameters_low.js';
 import {Camera}                 from './camera.js';
 import {startUIParams}          from './paramsUI.js';
 
@@ -101,7 +101,7 @@ gl.bindTexture(gl.TEXTURE_2D, null);
 PBF.init(particlesData.particlesPosition, particlesData.particlesVelocity, params.pbfResolution, params.voxelTextureSize, params.particlesTextureSize);
 
 //Initiate the mesher generator
-Mesher.init(params.resolution, params.expandedTextureSize, params.compressedTextureSize, params.compactTextureSize, params.compressedBuckets, params.expandedBuckets);
+Mesher.init(params.resolution, params.expandedTextureSize, params.compressedTextureSize, params.compactTextureSize, params.compressedBuckets, params.expandedBuckets, params.depthLevels);
 
 
 //Function used to render the particles in a framebuffer.

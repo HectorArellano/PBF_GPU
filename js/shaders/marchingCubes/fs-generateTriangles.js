@@ -33,6 +33,7 @@ const float EPSILON = 0.00001;
 
 uniform float uCompactSize;
 
+uniform int uLevels;
 
 //Constants used to simulate the 3D texture
 uniform vec3 u3D;
@@ -76,8 +77,7 @@ void main(void) {
         //12 steps are required to parse the different levels of the pyramid.
 
 
-        for(int i = 1; i < 12; i++) {
-            if(i == 11 && u3D.y == 128.) break;
+        for(int i = 1; i < uLevels; i++) {
             offset -= diff;
             diff *= 2.;
             relativePosition = position + k * vec2(offset, 0.);

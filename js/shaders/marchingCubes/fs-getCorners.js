@@ -4,6 +4,7 @@ precision highp float;
 precision highp sampler2D;
 uniform sampler2D uDataTexture;
 uniform vec3 u3D;
+uniform float uDepth;
 
 vec3 data[7];
 
@@ -26,7 +27,7 @@ void main(void) {
     data[5] = vec3(0., -1., 0.);
     data[6] = vec3(-1., 0., 0.);
 
-    float currentZLevel = floor(pos3D.y / 64.);
+    float currentZLevel = floor(pos3D.y / uDepth);
     vec2 uv  = index2D(pos3D);
     uv.y = fract(uv.y);
     vec4 corner = texture(uDataTexture, uv);
@@ -37,7 +38,7 @@ void main(void) {
     for(int i = 0; i < 7; i ++) {
 
         newPos3D = pos3D + data[i];
-        zLevel = floor(newPos3D.y / 64.);
+        zLevel = floor(newPos3D.y / uDepth);
         uv = index2D(newPos3D);
         uv.y = fract(uv.y);
 

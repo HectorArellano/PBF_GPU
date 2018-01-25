@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <title>Position Based Fluids (GPU)</title>
 </head>
+<script src="js/libs/datGui/dat.gui.js"></script>
 <script src="js/webGL/gl-matrix.js"></script>
 <script type="module" src="js/raytracer.js"></script>
 
@@ -15,10 +16,18 @@
         background-color: #000000;
     }
 
+    .uiContainer {
+        position: absolute;
+        top: 20px;
+        left: 20px;
+    }
+
 </style>
 
 <body>
     <canvas id="canvas3D"></canvas>
 </body>
+
+<div class = "uiContainer"></div>
 
 </html>

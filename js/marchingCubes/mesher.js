@@ -28,6 +28,7 @@ let compressedTextureSize;
 let compactTextureSize;
 let compressedBuckets;
 let expandedBuckets;
+let depthLevels;
 const amountOfTrianglesTextureSize = 16;
 const indexesTextureSize = 64;
 
@@ -89,13 +90,14 @@ for(let i = 0; i < 256; i++) {
 
 
 //Function used to initiate the marching cubes, should provide the resolution expected
-let init = (_resolution, _expandedTextureSize, _compressedTextureSize, _compactTextureSize, _compressedbuckets, _expandedBuckets) => {
+let init = (_resolution, _expandedTextureSize, _compressedTextureSize, _compactTextureSize, _compressedbuckets, _expandedBuckets, _depthLevels) => {
     resolution = _resolution;
     expandedTextureSize = _expandedTextureSize;
     compressedTextureSize = _compressedTextureSize;
     compactTextureSize = _compactTextureSize;
     compressedBuckets = _compressedbuckets;
     expandedBuckets = _expandedBuckets;
+    depthLevels = _depthLevels;
 
     tVoxels1 =                      webGL2.createTexture2D(compressedTextureSize, compressedTextureSize,               gl.RGBA8,   gl.RGBA, gl.NEAREST, gl.NEAREST, gl.UNSIGNED_BYTE);
     tVoxels2 =                      webGL2.createTexture2D(compressedTextureSize, compressedTextureSize,               gl.RGBA8,   gl.RGBA, gl.NEAREST, gl.NEAREST, gl.UNSIGNED_BYTE);
@@ -125,7 +127,7 @@ let init = (_resolution, _expandedTextureSize, _compressedTextureSize, _compactT
         tLevels.push(webGL2.createTexture2D(size, size, gl.RGBA32F, gl.RGBA, gl.NEAREST, gl.NEAREST, gl.FLOAT));
         fbPyramid.push(webGL2.createDrawFramebuffer(tLevels[i]));
     }
-    
+
     arrayTriIndex = null;
     arrayTriVoxel = null;
 
@@ -142,20 +144,25 @@ let init = (_resolution, _expandedTextureSize, _compressedTextureSize, _compactT
     blur2DProgram.dataTexture =                     gl.getUniformLocation(blur2DProgram, "uDT");
     blur2DProgram.axis =                            gl.getUniformLocation(blur2DProgram, "uAxis");
     blur2DProgram.steps =                           gl.getUniformLocation(blur2DProgram, "uSteps");
+    blur2DProgram.gridPartitioning =                gl.getUniformLocation(blur2DProgram, "u3D");
+
 
     blurDepthProgram =                              webGL2.generateProgram(vsQuad, blurDepth);
     blurDepthProgram.dataTexture =                  gl.getUniformLocation(blurDepthProgram, "uDT");
     blurDepthProgram.steps =                        gl.getUniformLocation(blurDepthProgram, "uSteps");
     blurDepthProgram.gridPartitioning =             gl.getUniformLocation(blurDepthProgram, "u3D");
+    blurDepthProgram.depthLevels =                  gl.getUniformLocation(blurDepthProgram, "uDepth");
 
     getCornersProgram =                             webGL2.generateProgram(vsQuad, getCorners);
     getCornersProgram.dataTexture =                 gl.getUniformLocation(getCornersProgram, "uDataTexture");
     getCornersProgram.gridPartitioning =            gl.getUniformLocation(getCornersProgram, "u3D");
+    getCornersProgram.depthLevels =                 gl.getUniformLocation(getCornersProgram, "uDepth");
 
     splitChannelsProgram =                          webGL2.generateProgram(vsQuad, splitChannels);
     splitChannelsProgram.dataTexture =              gl.getUniformLocation(splitChannelsProgram, "uDataTexture");
     splitChannelsProgram.gridPartitioningLow =      gl.getUniformLocation(splitChannelsProgram, "u3D_l");
     splitChannelsProgram.gridPartitioningHigh =     gl.getUniformLocation(splitChannelsProgram, "u3D_h");
+    splitChannelsProgram.depthLevels =              gl.getUniformLocation(splitChannelsProgram, "uDepth");
 
     marchCaseProgram =                              webGL2.generateProgram(vsQuad, marchCase);
     marchCaseProgram.dataTexture =                  gl.getUniformLocation(marchCaseProgram, "uDT");
@@ -182,12 +189,15 @@ let init = (_resolution, _expandedTextureSize, _compressedTextureSize, _compactT
     generateTrianglesProgram.total =                gl.getUniformLocation(generateTrianglesProgram, "uTotal");
     generateTrianglesProgram.fastNormals =          gl.getUniformLocation(generateTrianglesProgram, "uFastNormals");
     generateTrianglesProgram.compactTextureSize =   gl.getUniformLocation(generateTrianglesProgram, "uCompactSize");
+    generateTrianglesProgram.levels =               gl.getUniformLocation(generateTrianglesProgram, "uLevels");
 
 
 }
 
 //Function used to generate a 3D mesh using the marching cubes algorithm
-let generateMesh = (positionTexture, totalParticles, particlesGridScale, particlesSize, blurSteps, range, maxCells, fastNormals) => {
+let generateMesh = (positionTexture, totalParticles, particlesGridScale, particlesSize, _blurSteps, range, maxCells, fastNormals) => {
+
+    let blurSteps = 2 * _blurSteps;
 
     gl.blendEquation(gl.FUNC_ADD);
     gl.blendFunc(gl.ONE, gl.ONE);
@@ -214,11 +224,12 @@ let generateMesh = (positionTexture, totalParticles, particlesGridScale, particl
 
     gl.disable(gl.BLEND);
 
-    
+
     //Use a 3D blur for the potential generation.
     let blurXY = (buffer, texture, axis) => {
         gl.uniform2fv(blur2DProgram.axis, axis);
-        gl.uniform1f(blur2DProgram.steps, blurSteps);
+        gl.uniform1i(blur2DProgram.steps, blurSteps);
+        gl.uniform3f(blur2DProgram.gridPartitioning, 1. / compressedTextureSize, resolution, compressedBuckets);
         webGL2.bindTexture(blur2DProgram.dataTexture, texture, 0);
         gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, buffer);
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
@@ -231,18 +242,20 @@ let generateMesh = (positionTexture, totalParticles, particlesGridScale, particl
 
     gl.useProgram(blurDepthProgram);
     webGL2.bindTexture(blurDepthProgram.dataTexture, tVoxels1, 0);
-    gl.uniform1f(blurDepthProgram.steps, blurSteps);
+    gl.uniform1i(blurDepthProgram.steps, blurSteps);
+    gl.uniform1f(blurDepthProgram.depthLevels, depthLevels);
     gl.uniform3f(blurDepthProgram.gridPartitioning, 1. / compressedTextureSize, resolution, compressedBuckets);
     gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fbVoxels2);
     gl.clear(gl.COLOR_BUFFER_BIT);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
-    
+
     //Evaluate the corners values for the potentials
     gl.useProgram(getCornersProgram);
     gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fbVoxels1);
     webGL2.bindTexture(getCornersProgram.dataTexture, tVoxels2, 0);
     gl.uniform3f(getCornersProgram.gridPartitioning, 1. / compressedTextureSize, resolution, compressedBuckets);
+    gl.uniform1f(getCornersProgram.depthLevels, depthLevels);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
 
@@ -256,9 +269,10 @@ let generateMesh = (positionTexture, totalParticles, particlesGridScale, particl
     gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fb3DExpanded);
     gl.uniform3f(splitChannelsProgram.gridPartitioningLow, 1. / compressedTextureSize, resolution, compressedBuckets);
     gl.uniform3f(splitChannelsProgram.gridPartitioningHigh, 1. / expandedTextureSize, resolution, expandedBuckets);
+    gl.uniform1f(splitChannelsProgram.depthLevels, depthLevels);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
-    
+
     //Evaluate the cells active for the marching cubes
     gl.useProgram(marchCaseProgram);
     webGL2.bindTexture(marchCaseProgram.dataTexture, t3DExpanded, 0);
@@ -305,6 +319,7 @@ let generateMesh = (positionTexture, totalParticles, particlesGridScale, particl
     webGL2.bindTexture(generateTrianglesProgram.potentialTexture, t3DExpanded, 3);
     webGL2.bindTexture(generateTrianglesProgram.total, tLevels[0], 4);
     gl.uniform1f(generateTrianglesProgram.range, range);
+    gl.uniform1i(generateTrianglesProgram.levels, levels);
     gl.uniform1f(generateTrianglesProgram.compactTextureSize, compactTextureSize);
     gl.uniform3f(generateTrianglesProgram.gridPartitioning, expandedTextureSize, resolution, expandedBuckets);
     gl.uniform1i(generateTrianglesProgram.fastNormals, fastNormals);
@@ -312,14 +327,14 @@ let generateMesh = (positionTexture, totalParticles, particlesGridScale, particl
     gl.viewport(0, 0, compactTextureSize, compactTextureSize);
     gl.clear(gl.COLOR_BUFFER_BIT);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-    
+
 }
 
 export {init,
-        generateMesh,
-        tTriangles,
-        tNormals,
-        tVoxelsOffsets,
-        fbPyramid,
-        tLevels
+    generateMesh,
+    tTriangles,
+    tNormals,
+    tVoxelsOffsets,
+    tLevels,
+    fbPyramid
 }

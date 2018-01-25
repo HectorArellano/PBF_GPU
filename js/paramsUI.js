@@ -27,7 +27,7 @@ export function startUIParams(params) {
     //For the mesh generation
     let meshFolder = simulationUI.addFolder('Marching Cubes');
     meshFolder.add(params, "particleSize", 1, 10, 1).name("particle size").step(1);
-    meshFolder.add(params, "blurSteps", 1, 10, 1).name("spread steps").step(1);
+    meshFolder.add(params, "blurSteps", 1, 20, 1).name("spread steps").step(1);
     meshFolder.add(params, "range", 0, 1, 0.001).name("range").step(0.001);
     meshFolder.add(params, "maxCells", 0, 5, 0.1).name("max cells").step(0.1);
     meshFolder.add(params, "fastNormals").name("fast normals");

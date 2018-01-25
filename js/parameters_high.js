@@ -22,10 +22,11 @@ export class Params {
         //Marching cubes parameters, Change these values to change marching cubes resolution (128/2048/1024 or 256/4096/2048)
         this.resolution = 256;
         this.expandedTextureSize = 4096;
-        this.compressedTextureSize = 2048;
-        this.compactTextureSize = 3000;
-        this.compressedBuckets = 8;
         this.expandedBuckets = 16;
+        this.compressedTextureSize = 2048;
+        this.compressedBuckets = 8;
+        this.depthLevels = 64;
+        this.compactTextureSize = 3000;
         this.particleSize = 1;
         this.blurSteps = 2;
         this.range = 0.1;

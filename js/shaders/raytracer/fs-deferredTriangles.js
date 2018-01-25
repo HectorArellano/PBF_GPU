@@ -8,8 +8,8 @@ in vec2 uv;
 uniform sampler2D uTT;
 uniform sampler2D uTN;
 
-out vec3 position;
-out vec3 normal;
+in vec3 position;
+in vec3 normal;
 
 layout(location = 0) out vec4 trianglesPositions;
 layout(location = 1) out vec4 trianglesNormals;
