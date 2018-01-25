@@ -114,7 +114,7 @@ void main() {
     }
 
     // //Collision handling
-    // vec3 boxSize = vec3(uBucketData.y * 0.48);
+    // vec3 boxSize = vec3(uBucketData.y * 0.46);
     // vec3 xLocal = endPosition - center;
     // vec3 contactPointLocal = min(boxSize, max(-boxSize, xLocal));
     // vec3 contactPoint = contactPointLocal + center;
