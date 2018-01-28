@@ -16,7 +16,7 @@ import {fsPhongTriangles}       from './shaders/utils/fs-phongTriangles.js';
 //=======================================================================================================
 
 let canvas = document.querySelector("#canvas3D");
-canvas.height = 1000;
+canvas.height = 700;
 canvas.width = canvas.height * 2;
 canvas.style.width = String(canvas.width) + "px";
 canvas.style.height = String(canvas.height) + "px";
@@ -27,10 +27,10 @@ let camera = new Camera(canvas);
 let cameraDistance = 2.5;
 let FOV = 30;
 
-//For the Positionn Based Fluids
+//For the Position Based Fluids
 let updateSimulation = true;
 let deltaTime = 0.01;
-let constrainsIterations = 2;
+let constrainsIterations = 1;
 let pbfResolution = 64;
 let voxelTextureSize = 512;
 let particlesTextureSize = 1000;
@@ -49,11 +49,11 @@ let compressedBuckets = 8;
 
 let depthLevels = 64;
 
-let compactTextureSize = 1024;
+let compactTextureSize = 1500;
 
-let particleSize = 2.;
-let blurSteps = 20;
-let range = 0.25;
+let particleSize = 3.;
+let blurSteps = 10;
+let range = 0.26;
 let maxCells = 3.5;
 let fastNormals = false;
 let radius = pbfResolution * 0.39;
@@ -122,8 +122,8 @@ let render = () => {
         //Update the simulation
         PBF.updateFrame(acceleration, deltaTime, constrainsIterations);
 
-//        //Generate the mesh from the simulation particles
-//        Mesher.generateMesh(PBF.positionTexture, PBF.totalParticles, pbfResolution, particleSize, blurSteps, range, maxCells, fastNormals);
+        //Generate the mesh from the simulation particles
+        Mesher.generateMesh(PBF.positionTexture, PBF.totalParticles, pbfResolution, particleSize, blurSteps, range, maxCells, fastNormals);
 
         currentFrame++;
 
@@ -144,20 +144,27 @@ let render = () => {
     gl.disable(gl.DEPTH_TEST);
 
 
-//    let activeMCells = Math.ceil(maxCells * expandedTextureSize * expandedTextureSize / 100);
-//
-//
-//    //Render the triangles
-//    gl.useProgram(phongTrianglesProgram);
-//    gl.viewport(0, 0, canvas.height, canvas.height);
-//    webGL2.bindTexture(phongTrianglesProgram.textureTriangles, Mesher.tTriangles, 0);
-//    webGL2.bindTexture(phongTrianglesProgram.textureNormals, Mesher.tNormals, 1);
-//    gl.uniformMatrix4fv(phongTrianglesProgram.cameraMatrix, false, camera.cameraTransformMatrix);
-//    gl.uniformMatrix4fv(phongTrianglesProgram.perspectiveMatrix, false, camera.perspectiveMatrix);
-//    gl.uniform3f(phongTrianglesProgram.cameraPosition, camera.position[0], camera.position[1], camera.position[2]);
-//    gl.enable(gl.DEPTH_TEST);
-//    gl.drawArrays(gl.TRIANGLES, 0, 15 * activeMCells);
-//    gl.disable(gl.DEPTH_TEST);
+//    //Render the potential
+//    gl.viewport( canvas.height, 0, canvas.height, canvas.height);
+//    gl.useProgram(textureProgram);
+//    webGL2.bindTexture(textureProgram.texture, Mesher.t3DExpanded, 0);
+//    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+
+    let activeMCells = Math.ceil(maxCells * expandedTextureSize * expandedTextureSize / 100);
+
+
+    //Render the triangles
+    gl.useProgram(phongTrianglesProgram);
+    gl.viewport(canvas.height, 0, canvas.height, canvas.height);
+    webGL2.bindTexture(phongTrianglesProgram.textureTriangles, Mesher.tTriangles, 0);
+    webGL2.bindTexture(phongTrianglesProgram.textureNormals, Mesher.tNormals, 1);
+    gl.uniformMatrix4fv(phongTrianglesProgram.cameraMatrix, false, camera.cameraTransformMatrix);
+    gl.uniformMatrix4fv(phongTrianglesProgram.perspectiveMatrix, false, camera.perspectiveMatrix);
+    gl.uniform3f(phongTrianglesProgram.cameraPosition, camera.position[0], camera.position[1], camera.position[2]);
+    gl.enable(gl.DEPTH_TEST);
+    gl.drawArrays(gl.TRIANGLES, 0, 15 * activeMCells);
+    gl.disable(gl.DEPTH_TEST);
 
 
 };

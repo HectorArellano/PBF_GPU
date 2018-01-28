@@ -30,7 +30,9 @@ void main(void) {
     float depthLevel = 0.;
 
     //Obtain the depth level for the corresponding fragment.
-    float currentDepthLevel = floor(pos3D.y / uDepth); 
+    float currentDepthLevel = floor(pos3D.y / uDepth);
+
+    float zero = float(mod(pos.x, u3D.y) > border && mod(pos.y, u3D.y) > border && mod(pos.x, u3D.y) < u3D.y - 1. - border && mod(pos.y, u3D.y) < u3D.y - 1. - border);
 
     for (int i = 0; i < 2 * uSteps; i += 1) {
         float j = float(i) - 0.5 * float(uSteps);
@@ -51,7 +53,7 @@ void main(void) {
         //channel differences between the two fragments.
 
         vec3 cases = vec3(bvec3(depthLevel < currentDepthLevel, depthLevel == currentDepthLevel, depthLevel > currentDepthLevel));
-        blend += m * (vec4(0., newBucket.rgb) * cases.x + newBucket * cases.y + vec4(newBucket.gba, 0.) * cases.z);
+        blend += zero * m * (vec4(0., newBucket.rgb) * cases.x + newBucket * cases.y + vec4(newBucket.gba, 0.) * cases.z);
         m *= (n - k) / (k + 1.);
         sum += m;
     }
@@ -59,7 +61,7 @@ void main(void) {
     blend /= sum;
 
     //This avoids to spread information between the different buckets.
-    blend *= float(mod(pos.x, u3D.y) > border && mod(pos.y, u3D.y) > border && mod(pos.x, u3D.y) < u3D.y - 1. - border && mod(pos.y, u3D.y) < u3D.y - 1. - border);
+    blend *= zero;
 
     colorData = blend;
 }

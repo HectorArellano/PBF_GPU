@@ -74,8 +74,6 @@ void main(void) {
         vec4 m = vec4(0.);
         vec2 position = vec2(0.);
         vec4 vI4 = vec4(vI);
-        //12 steps are required to parse the different levels of the pyramid.
-
 
         for(int i = 1; i < uLevels; i++) {
             offset -= diff;
@@ -90,11 +88,11 @@ void main(void) {
             partialSums = texture(uPyramid, relativePosition);
         }
 
-
         ends = partialSums.wzyx + vec4(start);
         starts = vec4(start, ends.xyz);
         m = vec4(greaterThanEqual(vI4, starts)) * vec4(lessThan(vI4, ends));
         position += m.y * vec2(k, 0.) + m.z * vec2(0., k) + m.w * vec2(k, k);
+
         /*
         * MARCHING CUBES TO GENERATE THE VERTICES
         * POSITIONS AND NORMALS

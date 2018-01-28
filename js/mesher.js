@@ -91,6 +91,12 @@ for(let i = 0; i < 256; i++) {
 
 //Function used to initiate the marching cubes, should provide the resolution expected
 let init = (_resolution, _expandedTextureSize, _compressedTextureSize, _compactTextureSize, _compressedbuckets, _expandedBuckets, _depthLevels) => {
+
+    console.log("..............................");
+    console.log("Potential resolution: " + _resolution);
+    console.log("..............................");
+
+
     resolution = _resolution;
     expandedTextureSize = _expandedTextureSize;
     compressedTextureSize = _compressedTextureSize;
@@ -270,7 +276,7 @@ let generateMesh = (positionTexture, totalParticles, particlesGridScale, particl
     gl.uniform1f(splitChannelsProgram.depthLevels, depthLevels);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
-    
+
     //Evaluate the cells active for the marching cubes
     gl.useProgram(marchCaseProgram);
     webGL2.bindTexture(marchCaseProgram.dataTexture, t3DExpanded, 0);
@@ -325,7 +331,7 @@ let generateMesh = (positionTexture, totalParticles, particlesGridScale, particl
     gl.viewport(0, 0, compactTextureSize, compactTextureSize);
     gl.clear(gl.COLOR_BUFFER_BIT);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-    
+
 }
 
 export {init,
@@ -333,4 +339,5 @@ export {init,
         tTriangles,
         tNormals,
         tVoxelsOffsets,
+        t3DExpanded
 }
