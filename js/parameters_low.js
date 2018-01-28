@@ -32,7 +32,7 @@ export class Params {
         this.range = 0.1;
         this.maxCells = 3.5;
         this.fastNormals = false;
-        this.updateMesh = true;
+        this.updateMesh = false;
 
         //General raytracer parameters
         this.lowResolutionTextureSize = 256;
@@ -42,7 +42,7 @@ export class Params {
         this.floorTextureSize = 2048;
         this.floorScale = 5;
         this.killRay = 0.02;
-        this.updateImage = true;
+        this.updateImage = false;
 
         //Material parameters (dielectric)
         this.refraction = 1.2;
@@ -59,6 +59,7 @@ export class Params {
         this.kD = 0.;
         this.kA = 0.;
         this.shinny = 60;
+        this.dielectricLOD = 3;
 
 
         //Light parameters
@@ -68,7 +69,7 @@ export class Params {
         this.lightDistance = 3;
         this.backgroundColor = 0.6;
         this.lightColor = [255, 255, 255];
-        this.calculateShadows = true;
+        this.calculateShadows = false;
         this.shadowIntensity = 0.3;
         this.blurShadowsRadius = 30;
 
@@ -80,7 +81,7 @@ export class Params {
         this.photonSteps = 1;
         this.radianceRadius = 5.6;
         this.radiancePower = 0.2;
-        this.calculateCaustics = true;
+        this.calculateCaustics = false;
         this.causticsSize = 1000;
         this.totalPhotons = this.causticsSize * this.causticsSize;
         this.causticSteps = 0;
@@ -93,7 +94,7 @@ export class Params {
 
         let particlesPosition = [];
         let particlesVelocity = [];
-        let radius = this.pbfResolution * 0.45;
+        let radius = this.pbfResolution * 0.39;
         //Generate the position and velocity
         for (let i = 0; i < this.pbfResolution; i++) {
             for (let j = 0; j < this.pbfResolution; j++) {

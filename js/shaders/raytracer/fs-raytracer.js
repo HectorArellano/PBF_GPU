@@ -35,6 +35,7 @@ const fsRaytracer = `#version 300 es
  uniform vec3 uLightColor;
  uniform vec3 uMaterialColor;
  uniform float uCompactSize;
+ uniform float uLOD;
 
  in vec2 uv;
  out vec4 colorData;
@@ -195,13 +196,13 @@ float sphereIntersect(vec3 rayOrigin, vec3 rayDirection, vec3 center, float radi
                 vec3 rotVector = rotY(-0.) * pointInPlane;
                 vec3 lightVector = uLightData.rgb - pointInPlane;
                 vec3 lightDirection = normalize(lightVector);
-                color = textureLod(uFloor, rotVector.xz, 3.).rgb;
+                color = textureLod(uFloor, rotVector.xz, uLOD).rgb;
                 color = floorShade(color, lightDirection);
                 color *= uLightData.a / pow(length(lightVector), 2.);
                 color += pow(vec3(uBg), vec3(2.2));
                 vec2 st = (pointInPlane.xz - vec2(0.5)) / uScaleShadow + vec2(0.5);
                 if(all(greaterThan(st, vec2(0.))) && all(lessThan(st, vec2(1.)))) {
-                    float shadow = 1. - textureLod(uTShadows, st, 3.).r;
+                    float shadow = 1. - textureLod(uTShadows, st, uLOD).r;
                     color *= clamp(shadow, 1.- uShadowIntensity, 1.);
                     color += pow(texture(uRadiance, st).rgb, vec3(2.2));
                 }

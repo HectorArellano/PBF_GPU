@@ -175,9 +175,9 @@ let render = () => {
     lightPos.z = r * s * Math.sin(lBeta) + 0.5;
 
     let acceleration = {
-        x: 0 * Math.sin(currentFrame * Math.PI / 180),
+        x: 3 * Math.sin(currentFrame * Math.PI / 180),
         y: -10,
-        z: 0 * Math.cos(currentFrame * Math.PI / 180)
+        z: 3 * Math.cos(currentFrame * Math.PI / 180)
     }
 
 
@@ -195,8 +195,8 @@ let render = () => {
 
     //Ray tracing section
     if(params.updateImage) {
-        let activeMCells = Math.ceil(params.maxCells * params.expandedTextureSize * params.expandedTextureSize / 100);
 
+        let activeMCells = Math.ceil(params.maxCells * params.expandedTextureSize * params.expandedTextureSize / 100);
 
         //Generate the high resolution grid for the ray tracer
         gl.useProgram(Programs.highResGrid);
@@ -376,6 +376,7 @@ let render = () => {
         webGL2.bindTexture(Programs.raytracer.radianceTexture, tRadiance2, 8);
         gl.uniform3f(Programs.raytracer.eyeVector, camera.position[0], camera.position[1], camera.position[2]);
         gl.uniform1f(Programs.raytracer.refract, params.refraction);
+        gl.uniform1f(Programs.raytracer.dielectricLOD, params.dielectricLOD);
         gl.uniform1f(Programs.raytracer.energyDecay, 1. - params.energyDecay);
         gl.uniform1i(Programs.raytracer.iterations, params.maxIterations);
         gl.uniform1i(Programs.raytracer.refractions, params.refractions);

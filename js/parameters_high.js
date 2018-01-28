@@ -59,6 +59,8 @@ export class Params {
         this.kD = 0.;
         this.kA = 0.;
         this.shinny = 60;
+        this.dielectricLOD = 3;
+
 
         //Light parameters
         this.lightAlpha = 30;

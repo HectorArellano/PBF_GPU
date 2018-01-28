@@ -47,7 +47,8 @@ export function startUIParams(params) {
     materialFolder.add(params, "refraction", 0, 10, 0.1).name("refraction").step(0.1);
     materialFolder.add(params, "refractions", 0, 20, 0.1).name("refraction steps").step(1);
     materialFolder.add(params, "reflections", 0, 20, 0.1).name("reflection steps").step(1);
-    materialFolder.add(params, "distanceAbsorptionScale", 0, 10, 1).name("absorption scale").step(1);
+    materialFolder.add(params, "dielectricLOD", 0, 8, 1).name("dielectric LOD").step(1);
+    materialFolder.add(params, "distanceAbsorptionScale", 0, 40, 1).name("absorption scale").step(1);
     materialFolder.add(params, "kS", 0, 1, 0.001).name("specular intensity").step(0.001);
     materialFolder.add(params, "kD", 0, 1, 0.001).name("diffuse intensity").step(0.001);
     materialFolder.add(params, "kA", 0, 1, 0.001).name("ambient intensity").step(0.001);
@@ -59,6 +60,7 @@ export function startUIParams(params) {
     materialFolder.add(params, "radianceRadius", 0, 30, 0.1).name("radiance radius").step(0.1);
     materialFolder.add(params, "radiancePower", 0, 1, 0.01).name("radiance power").step(0.01);
     materialFolder.add(params, "calculateCaustics").name("update caustics");
+    materialFolder.add(params, "dielectricLOD", 0, 8, 1).name("dielectric LOD").step(1);
     materialFolder.addColor(params, 'absorptionColor');
     materialFolder.addColor(params, 'materialColor');
     materialFolder.open();
@@ -69,8 +71,6 @@ export function startUIParams(params) {
     raytracerUI.domElement.style.display = "none";
     uiContainer.appendChild(raytracerUI.domElement);
     let raytracerUiActive = false;
-
-
 
 
     //General raytracer folder

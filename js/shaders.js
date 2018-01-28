@@ -178,6 +178,7 @@ export function init() {
     raytracer.lightColor = gl.getUniformLocation(raytracer, "uLightColor");
     raytracer.materialColor = gl.getUniformLocation(raytracer, "uMaterialColor");
     raytracer.compactTextureSize = gl.getUniformLocation(raytracer, "uCompactSize");
+    raytracer.dielectricLOD = gl.getUniformLocation(raytracer, "uLOD");
 
     renderFloor = webGL2.generateProgram(vsRenderFloor, fsRenderFloor);
     renderFloor.cameraMatrix = gl.getUniformLocation(renderFloor, "uCameraMatrix");
