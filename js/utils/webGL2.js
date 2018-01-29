@@ -44,14 +44,29 @@ const generateProgram = (vertexShader, fragmentShader) => {
 const createBuffer = data => {
     if(contextReady) {
         let buffer =  gl.createBuffer();
-        gl.bindBuffer( gl.ARRAY_BUFFER, buffer);
-        gl.bufferData( gl.ARRAY_BUFFER, new Float32Array(data),  gl.STATIC_DRAW);
-        gl.bindBuffer(null);
+        gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(data),  gl.STATIC_DRAW);
+        gl.bindBuffer(gl.ARRAY_BUFFER, null);
         return buffer;
     } else {
         console.log(new Error("Context not set yet"));
     }
 }
+
+
+//Function used to genarate an array buffer for indexes
+const createIndexBuffer = data => {
+    if(contextReady) {
+        let buffer =  gl.createBuffer();
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffer);
+        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(data), gl.STATIC_DRAW);
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
+        return buffer;
+    } else {
+        console.log(new Error("Context not set yet"));
+    }
+}
+
 
 //Function used to generate an empty texture2D
 let memory = 0;
@@ -138,6 +153,13 @@ const createDrawFramebuffer = (_textures, useDepth = false, useStencil = false) 
     }
 }
 
+//function used to bind an attribute buffer
+const bindAttribBuffer = (attribLocation, buffer, bufferDataSize) => {
+    gl.enableVertexAttribArray(attribLocation);
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+    gl.vertexAttribPointer(attribLocation, bufferDataSize, gl.FLOAT, false, 0, 0);
+}
+
 
 export {
     gl,
@@ -146,7 +168,9 @@ export {
     createTexture2D,
     bindTexture,
     createBuffer,
-    createDrawFramebuffer
+    createDrawFramebuffer,
+    createIndexBuffer,
+    bindAttribBuffer
 }
 
 //=======================================================================================================
