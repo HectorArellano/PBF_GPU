@@ -3,7 +3,7 @@ import * as webGL2              from './webGL/webGL2.js';
 import * as PBF                 from './positionBasedFluids/pbf.js';
 import * as Mesher              from './marchingCubes/mesher.js';
 import * as Programs            from './shaders.js';
-import {Params}                 from './parameters_low.js';
+import {Params}                 from './parameters_sphere.js';
 import {Camera}                 from './camera.js';
 import {startUIParams}          from './paramsUI.js';
 
@@ -105,7 +105,7 @@ Mesher.init(params.resolution, params.expandedTextureSize, params.compressedText
 
 
 //Function used to render the particles in a framebuffer.
-let renderParticles = (_x, _u, _width, _height, buffer, cleanBuffer = true) => {
+let renderParticles = (_x, _u, _width, _height, buffer) => {
     gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, buffer);
     gl.viewport(_x, _u, _width, _height);
     gl.useProgram(Programs.renderParticles);
@@ -113,21 +113,22 @@ let renderParticles = (_x, _u, _width, _height, buffer, cleanBuffer = true) => {
     gl.uniform1f(Programs.renderParticles.scale, params.pbfResolution);
     gl.uniformMatrix4fv(Programs.renderParticles.cameraMatrix, false, camera.cameraTransformMatrix);
     gl.uniformMatrix4fv(Programs.renderParticles.perspectiveMatrix, false, camera.perspectiveMatrix);
-    if (cleanBuffer) gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     gl.enable(gl.DEPTH_TEST);
     gl.drawArrays(gl.POINTS, 0, PBF.totalParticles);
     gl.disable(gl.DEPTH_TEST);
 }
 
 //Function used to check the textures
-let checkTexture = (texture, _x, _u, _width, _height, buffer, cleanBuffer = true, forceAlpha = false) => {
+let checkTexture = (texture, _x, _u, _width, _height, buffer, forceAlpha = false) => {
+    gl.enable(gl.SCISSOR_TEST);
+    gl.scissor(_x, _u, _width, _height);
     gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, buffer);
     gl.viewport(_x, _u, _width, _height);
     gl.useProgram(Programs.texture);
     webGL2.bindTexture(Programs.texture.texture, texture, 0);
     gl.uniform1i(Programs.texture.forceAlpha, forceAlpha);
-    if (cleanBuffer) gl.clear(gl.COLOR_BUFFER_BIT);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    gl.disable(gl.SCISSOR_TEST);
 }
 
 //Function used to evaluate the fsRadiance
@@ -158,6 +159,7 @@ gl.blendEquation(gl.FUNC_ADD);
 gl.blendFunc(gl.ONE, gl.ONE);
 
 let currentFrame = 0;
+let renderStarted = false;
 let render = () => {
 
     requestAnimationFrame(render);
@@ -441,13 +443,20 @@ let render = () => {
         gl.bindTexture(gl.TEXTURE_2D, tScene2);
         gl.generateMipmap(gl.TEXTURE_2D);
         gl.bindTexture(gl.TEXTURE_2D, null);
+
+        renderStarted = true;
+
     }
 
-    //Check the simulation
-    renderParticles(0, 0, 700, 700, null, true);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+    //Render the particles
+    renderParticles(0, 0, 700, 700, null);
 
     //Checking texture results
-    checkTexture(tScene2, 700, 0, 700, 700, null, false, true);
+    if(renderStarted) checkTexture(tScene2, 700, 0, 700, 700, null, true);
+
 
 };
 

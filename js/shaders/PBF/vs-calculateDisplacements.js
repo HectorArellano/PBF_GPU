@@ -99,22 +99,22 @@ void main() {
 
     vec3 endPosition = particlePosition + (uGradientKernelConstant / uRestDensity) * deltaPosition;
 
-    //Collision handling
+    //Collision handling on sphere
     vec3 center = vec3(uBucketData.y * 0.5);
-    float radius = uBucketData.y * 0.4;
+    float radius = uBucketData.y * 0.55;
     vec3 normal = endPosition - center;
     float n = length(normal);
     float distance = n -  radius;
 
-    if(distance > 0. && distance < 0.1 && endPosition.y < 80.) {
+    if(distance > 0. && distance > 0.1 && endPosition.y < 80.) {
 
             normal = normalize(normal);
             endPosition = center + normal * radius;
 
     }
 
-    //Collision handling
-    vec3 boxSize = vec3(uBucketData.y * 0.48);
+    //Collision handling on box
+    vec3 boxSize = vec3(uBucketData.y * 0.47);
     vec3 xLocal = endPosition - center;
     vec3 contactPointLocal = min(boxSize, max(-boxSize, xLocal));
     vec3 contactPoint = contactPointLocal + center;

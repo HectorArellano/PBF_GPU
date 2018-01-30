@@ -27,7 +27,7 @@ export function startUIParams(params) {
     //For the mesh generation
     let meshFolder = simulationUI.addFolder('Marching Cubes');
     meshFolder.add(params, "particleSize", 1, 10, 1).name("particle size").step(1);
-    meshFolder.add(params, "blurSteps", 1, 20, 1).name("spread steps").step(1);
+    meshFolder.add(params, "blurSteps", 1, 30, 1).name("spread steps").step(1);
     meshFolder.add(params, "range", 0, 1, 0.001).name("range").step(0.001);
     meshFolder.add(params, "maxCells", 0, 5, 0.1).name("max cells").step(0.1);
     meshFolder.add(params, "fastNormals").name("fast normals");
@@ -51,11 +51,12 @@ export function startUIParams(params) {
     materialFolder.add(params, "distanceAbsorptionScale", 0, 40, 1).name("absorption scale").step(1);
     materialFolder.add(params, "kS", 0, 1, 0.001).name("specular intensity").step(0.001);
     materialFolder.add(params, "kD", 0, 1, 0.001).name("diffuse intensity").step(0.001);
-    materialFolder.add(params, "kA", 0, 1, 0.001).name("ambient intensity").step(0.001);
+    // materialFolder.add(params, "kA", 0, 1, 0.001).name("ambient intensity").step(0.001);
     materialFolder.add(params, "shinny", 0, 60, 1).name("specular power").step(1);
     materialFolder.add(params, "dispersion", 0, 0.2, 0.0001).name("dispersion").step(0.0001);
     materialFolder.add(params, "photonSize", 1, 10, 1).name("photons size").step(1);
     materialFolder.add(params, "photonEnergy", 0, 1, 0.001).name("photons energy").step(0.001);
+    materialFolder.add(params, "photonSteps", 1, 5, 1).name("photons steps").step(1);
     materialFolder.add(params, "reflectionPhotons", 0, 1, 0.001).name("reflection photons").step(0.01);
     materialFolder.add(params, "radianceRadius", 0, 30, 0.1).name("radiance radius").step(0.1);
     materialFolder.add(params, "radiancePower", 0, 1, 0.01).name("radiance power").step(0.01);

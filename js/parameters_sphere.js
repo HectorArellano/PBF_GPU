@@ -28,32 +28,32 @@ export class Params {
         this.depthLevels = 64;
         this.compactTextureSize = 2500;
         this.particleSize = 2;
-        this.blurSteps = 24;
-        this.range = 0.1;
+        this.blurSteps = 12;
+        this.range = 0.12;
         this.maxCells = 3.5;
         this.fastNormals = false;
-        this.updateMesh = false;
+        this.updateMesh = true;
 
         //General raytracer parameters
-        this.lowResolutionTextureSize = 256;
-        this.lowGridPartitions = 32;
+        this.lowResolutionTextureSize = 512;
+        this.lowGridPartitions = 64;
         this.lowSideBuckets = 8;
-        this.sceneSize = 2048;       //Requires to be a power of two for mip mapping
+        this.sceneSize = 2048;
         this.floorTextureSize = 2048;
         this.floorScale = 5;
         this.killRay = 0.02;
         this.updateImage = false;
 
         //Material parameters (dielectric)
-        this.refraction = 1.2;
+        this.refraction = 1.3;
         this.maxIterations = 600.;
         this.refractions = 8;
         this.reflections = 3;
         this.maxStepsPerBounce = 800;
-        this.absorptionColor = [150, 150, 152];
+        this.absorptionColor = [179, 184, 195];
         this.dispersion = 0.0;
         this.energyDecay = 0;
-        this.distanceAbsorptionScale = 6;
+        this.distanceAbsorptionScale = 4;
         this.materialColor = [255, 255, 255];
         this.kS = 0.;
         this.kD = 0.;
@@ -63,26 +63,26 @@ export class Params {
 
 
         //Light parameters
-        this.lightAlpha = 30;
+        this.lightAlpha = 26;
         this.lightBeta = 0;
         this.lightIntensity = 2.5;
         this.lightDistance = 3;
-        this.backgroundColor = 0.6;
-        this.lightColor = [255, 255, 255];
-        this.calculateShadows = false;
-        this.shadowIntensity = 0.3;
-        this.blurShadowsRadius = 30;
+        this.backgroundColor = 0.7;
+        this.lightColor = [183, 211, 217];
+        this.calculateShadows = true;
+        this.shadowIntensity = 0.7;
+        this.blurShadowsRadius = 12;
 
         //Caustics parameters
         this.photonSize = 2;
-        this.photonEnergy = 0.2;
+        this.photonEnergy = 0.15;
         this.reflectionPhotons = 0.;
         this.photonsToEmit = 1;
         this.photonSteps = 1;
-        this.radianceRadius = 5.6;
-        this.radiancePower = 0.2;
-        this.calculateCaustics = false;
-        this.causticsSize = 1000;
+        this.radianceRadius = 2;
+        this.radiancePower = 0.25;
+        this.calculateCaustics = true;
+        this.causticsSize = 2000;
         this.totalPhotons = this.causticsSize * this.causticsSize;
         this.causticSteps = 0;
 

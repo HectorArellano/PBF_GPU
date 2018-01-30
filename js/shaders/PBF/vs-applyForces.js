@@ -24,12 +24,7 @@ void main() {
     vec3 normal = position - center;
     float n = length(normal);
     float distance = n -  radius;
-    vec3 acceleration = vec3(0., -10., 0.);
-    if(distance > 0. && distance < 0.1 && position.y < 80.) {
-        acceleration = uAcceleration;
-    }
-
-    colorData = vec4(position + (texture(uTextureVelocity, index).rgb + acceleration * uDeltaTime) * uDeltaTime, 1.);
+    colorData = vec4(position + (texture(uTextureVelocity, index).rgb + uAcceleration * uDeltaTime) * uDeltaTime, 1.);
 }
 
 `;
