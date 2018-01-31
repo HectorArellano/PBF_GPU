@@ -35,7 +35,8 @@ let pbfResolution = 64;
 let voxelTextureSize = 512;
 let particlesTextureSize = 1000;
 let particlesPosition = [];
-let particlesVelocity = []
+let particlesVelocity = [];
+let particlesColors = [];
 let currentFrame = 0;
 
 //Change these values to change marching cubes resolution (128/2048/1024 or 256/4096/2048)
@@ -71,10 +72,16 @@ for (let i = 0; i < pbfResolution; i++) {
             if (x * x + y * y + z * z < radius * radius && k < pbfResolution * 0.4) {
                 particlesPosition.push(i, j, k, 1);
                 particlesVelocity.push(0, 0, 0, 0); //Velocity is zero for all the particles.
+                particlesColors.push(0, 0, 0, 0);
             }
         }
     }
 }
+
+//Generate the particles colors texture
+for(let i = particlesPosition.length / 4; i < particlesTextureSize * particlesTextureSize; i ++) particlesColors.push(0, 0, 0, 0);
+let colorsTexture = webGL2.createTexture2D(particlesTextureSize, particlesTextureSize, gl.RGBA8, gl.RGBA, gl.NEAREST, gl.NEAREST, gl.UNSIGNED_BYTE, new Uint8Array(particlesColors));
+
 
 let renderParticlesProgram = webGL2.generateProgram(vsParticles, fsColor);
 renderParticlesProgram.positionTexture = gl.getUniformLocation(renderParticlesProgram, "uTexturePosition");
@@ -99,7 +106,7 @@ phongTrianglesProgram.cameraPosition = gl.getUniformLocation(phongTrianglesProgr
 //=======================================================================================================
 
 //Initiate the position based fluids solver
-    PBF.init(particlesPosition, particlesVelocity, pbfResolution, voxelTextureSize, particlesTextureSize);
+PBF.init(particlesPosition, particlesVelocity, pbfResolution, voxelTextureSize, particlesTextureSize);
 particlesPosition = null;
 particlesVelocity = null;
 
@@ -123,7 +130,7 @@ let render = () => {
         PBF.updateFrame(acceleration, deltaTime, constrainsIterations);
 
         //Generate the mesh from the simulation particles
-        Mesher.generateMesh(PBF.positionTexture, PBF.totalParticles, pbfResolution, particleSize, blurSteps, range, maxCells, fastNormals);
+        Mesher.generateMesh(PBF.positionTexture, PBF.totalParticles, colorsTexture, pbfResolution, particleSize, blurSteps, range, maxCells, fastNormals);
 
         currentFrame++;
 

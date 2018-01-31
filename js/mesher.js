@@ -105,8 +105,8 @@ let init = (_resolution, _expandedTextureSize, _compressedTextureSize, _compactT
     expandedBuckets = _expandedBuckets;
     depthLevels = _depthLevels;
 
-    tVoxels1 =                      webGL2.createTexture2D(compressedTextureSize, compressedTextureSize,               gl.RGBA8,   gl.RGBA, gl.NEAREST, gl.NEAREST, gl.UNSIGNED_BYTE);
-    tVoxels2 =                      webGL2.createTexture2D(compressedTextureSize, compressedTextureSize,               gl.RGBA8,   gl.RGBA, gl.NEAREST, gl.NEAREST, gl.UNSIGNED_BYTE);
+    tVoxels1 =                      webGL2.createTexture2D(compressedTextureSize, compressedTextureSize,               gl.RGBA32F,   gl.RGBA, gl.NEAREST, gl.NEAREST, gl.FLOAT);
+    tVoxels2 =                      webGL2.createTexture2D(compressedTextureSize, compressedTextureSize,               gl.RGBA32F,   gl.RGBA, gl.NEAREST, gl.NEAREST, gl.FLOAT);
     tTriangles =                    webGL2.createTexture2D(compactTextureSize, compactTextureSize,                     gl.RGBA32F, gl.RGBA, gl.NEAREST, gl.NEAREST, gl.FLOAT);
     tNormals =                      webGL2.createTexture2D(compactTextureSize, compactTextureSize,                     gl.RGBA32F, gl.RGBA, gl.NEAREST, gl.NEAREST, gl.FLOAT);
     tVoxelsOffsets =                webGL2.createTexture2D(compactTextureSize, compactTextureSize,                     gl.RGBA32F, gl.RGBA, gl.NEAREST, gl.NEAREST, gl.FLOAT);
@@ -141,6 +141,7 @@ let init = (_resolution, _expandedTextureSize, _compressedTextureSize, _compactT
     //programs generation
     setVoxelsProgram =                              webGL2.generateProgram(vsParticlesPlacement, fsColor);
     setVoxelsProgram.positionTexture =              gl.getUniformLocation(setVoxelsProgram, "uTexturePosition");
+    setVoxelsProgram.colorTexture =                 gl.getUniformLocation(setVoxelsProgram, "uColors");
     setVoxelsProgram.phase =                        gl.getUniformLocation(setVoxelsProgram, "uPhase");
     setVoxelsProgram.particleSize =                 gl.getUniformLocation(setVoxelsProgram, "uSize");
     setVoxelsProgram.gridPartitioning =             gl.getUniformLocation(setVoxelsProgram, "u3D");
@@ -201,7 +202,7 @@ let init = (_resolution, _expandedTextureSize, _compressedTextureSize, _compactT
 }
 
 //Function used to generate a 3D mesh using the marching cubes algorithm
-let generateMesh = (positionTexture, totalParticles, particlesGridScale, particlesSize, blurSteps, range, maxCells, fastNormals) => {
+let generateMesh = (positionTexture, totalParticles, colorTexture, particlesGridScale, particlesSize, blurSteps, range, maxCells, fastNormals) => {
 
     gl.blendEquation(gl.FUNC_ADD);
     gl.blendFunc(gl.ONE, gl.ONE);
@@ -214,6 +215,7 @@ let generateMesh = (positionTexture, totalParticles, particlesGridScale, particl
     //Place particles in the voxel space
     gl.useProgram(setVoxelsProgram);
     webGL2.bindTexture(setVoxelsProgram.positionTexture, positionTexture, 0);
+    webGL2.bindTexture(setVoxelsProgram.colorTexture, colorTexture, 1);
     gl.uniform1f(setVoxelsProgram.particleSize, particlesSize);
     gl.uniform1f(setVoxelsProgram.particlesGridScale, particlesGridScale);
     gl.uniform3f(setVoxelsProgram.gridPartitioning, 1. / compressedTextureSize, resolution, compressedBuckets);
