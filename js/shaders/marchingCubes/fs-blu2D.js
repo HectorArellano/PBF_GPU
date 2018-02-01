@@ -12,11 +12,11 @@ in vec2 uv;
 out uvec4 colorData;
 
 ivec4 intToRGBA(int data) {
-    return ivec4((data >> 24) & 255, (data >> 16) & 255, (data >> 8) & 255, data & 255);
+    return ivec4((data >> 24) & 255, (data >> 16) & 255, (data >> 8) & 255, (data >> 0) & 255);
 }
 
 uint rgbaToUInt(int r, int g, int b, int p) {
-    return uint((r & 255) << 24 | (g & 255) << 16 | (b & 255) << 8 | (p & 255));
+    return uint((r & 255) << 24 | (g & 255) << 16 | (b & 255) << 8 | (p & 255) << 0);
 }
 
 void blendColor(in ivec3 color, inout ivec3 mixColor, inout int divider) {

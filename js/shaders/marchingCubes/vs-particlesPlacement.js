@@ -10,7 +10,7 @@ uniform float uParticlesGridScale;
 flat out uvec4 colorData;
 
 uint rgbaToInt(int r, int g, int b, int p) {
-    return uint((r & 255) << 24 | (g & 255) << 16 | (b & 255) << 8 | (p & 255));
+    return uint((r & 255) << 24 | (g & 255) << 16 | (b & 255) << 8 | (p & 255) << 0);
 }
 
 void main() {
@@ -20,7 +20,7 @@ void main() {
     vec2 index2D = (vec2(mod(index1D, textureSize), floor(index1D / textureSize)) + vec2(0.5)) / textureSize;
     
     vec4 data = texture(uTexturePosition, index2D);
-    ivec3 color = ivec3(texture(uColors, index2D).rgb);
+    ivec3 color = ivec3(255. * texture(uColors, index2D).rgb);
     
     vec3 position = data.rgb;
 
@@ -33,7 +33,7 @@ void main() {
     gP.y = fract(gP.y);
     gP = 2. * gP - vec2(1.);
 
-    uint encodedData = rgbaToInt(200, 200, 200, 255);
+    uint encodedData = rgbaToInt(color.x, color.y, color.z, 255);
 
     colorData = encodedData * uvec4(equal(vec4(depthLevel), vec4(0., 1., 2., 3.)));
 

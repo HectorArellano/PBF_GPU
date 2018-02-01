@@ -112,6 +112,7 @@ let init = (_resolution, _expandedTextureSize, _compressedTextureSize, _compactT
     tTriangles =                    webGL2.createTexture2D(compactTextureSize, compactTextureSize,                     gl.RGBA32F, gl.RGBA, gl.NEAREST, gl.NEAREST, gl.FLOAT);
     tNormals =                      webGL2.createTexture2D(compactTextureSize, compactTextureSize,                     gl.RGBA32F, gl.RGBA, gl.NEAREST, gl.NEAREST, gl.FLOAT);
     tColors =                       webGL2.createTexture2D(compactTextureSize, compactTextureSize,                     gl.RGBA32F, gl.RGBA, gl.NEAREST, gl.NEAREST, gl.FLOAT);
+
     tVoxelsOffsets =                webGL2.createTexture2D(compactTextureSize, compactTextureSize,                     gl.RGBA32F, gl.RGBA, gl.NEAREST, gl.NEAREST, gl.FLOAT);
     tHelper =                       webGL2.createTexture2D(expandedTextureSize, expandedTextureSize,                   gl.RGBA32F, gl.RGBA, gl.NEAREST, gl.NEAREST, gl.FLOAT);
     t3DExpanded =                   webGL2.createTexture2D(expandedTextureSize, expandedTextureSize,                   gl.RGBA32F, gl.RGBA, gl.NEAREST, gl.NEAREST, gl.FLOAT);
