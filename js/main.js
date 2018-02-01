@@ -72,7 +72,7 @@ for (let i = 0; i < pbfResolution; i++) {
             if (x * x + y * y + z * z < radius * radius && k < pbfResolution * 0.4) {
                 particlesPosition.push(i, j, k, 1);
                 particlesVelocity.push(0, 0, 0, 0); //Velocity is zero for all the particles.
-                particlesColors.push(0, 0, 0, 0);
+                particlesColors.push(250, 250, 250, 0);
             }
         }
     }
@@ -151,11 +151,12 @@ let render = () => {
     gl.disable(gl.DEPTH_TEST);
 
 
-   //Render the potential
-   gl.viewport( canvas.height, 0, canvas.height, canvas.height);
-   gl.useProgram(textureProgram);
-   webGL2.bindTexture(textureProgram.texture, Mesher.tVoxels1, 0);
-   gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    // //Render the potential
+    // gl.viewport( canvas.height, 0, canvas.height, canvas.height);
+    // gl.useProgram(textureProgram);
+    // webGL2.bindTexture(textureProgram.texture, Mesher.t3DExpanded, 0);
+    // gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
 
 
     let activeMCells = Math.ceil(maxCells * expandedTextureSize * expandedTextureSize / 100);

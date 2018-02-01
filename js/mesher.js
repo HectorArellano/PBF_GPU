@@ -4,9 +4,9 @@ import  {ti5, trianglesOnVoxels}    from './utils/marchingCubesTables.js';
 
 //Shaders
 import {vsQuad}                     from './shaders/utils/vs-quad.js';
-import {fsColor}                    from './shaders/utils/fs-simpleColor.js';
+import {fsColor}                    from './shaders/utils/fs-simpleUIColor.js';
 import {fsTextureColor}             from './shaders/utils/fs-simpleTexture.js';
-import {vsParticlesPlacement}       from './shaders/marchingCubes/vs-partticlesPlacement.js';
+import {vsParticlesPlacement}       from './shaders/marchingCubes/vs-particlesPlacement.js';
 import {blur2D}                     from './shaders/marchingCubes/fs-blu2D.js';
 import {blurDepth}                  from './shaders/marchingCubes/fs-blurDepth.js';
 import {getCorners}                 from './shaders/marchingCubes/fs-getCorners.js';
@@ -38,6 +38,7 @@ let tVoxels1,
     tVoxels2,
     tTriangles,
     tNormals,
+    tColors,
     tVoxelsOffsets,
     tHelper,
     t3DExpanded,
@@ -105,10 +106,12 @@ let init = (_resolution, _expandedTextureSize, _compressedTextureSize, _compactT
     expandedBuckets = _expandedBuckets;
     depthLevels = _depthLevels;
 
-    tVoxels1 =                      webGL2.createTexture2D(compressedTextureSize, compressedTextureSize,               gl.RGBA32F,   gl.RGBA, gl.NEAREST, gl.NEAREST, gl.FLOAT);
-    tVoxels2 =                      webGL2.createTexture2D(compressedTextureSize, compressedTextureSize,               gl.RGBA32F,   gl.RGBA, gl.NEAREST, gl.NEAREST, gl.FLOAT);
+    tVoxels1 =                      webGL2.createTexture2D(compressedTextureSize, compressedTextureSize,               gl.RGBA32UI, gl.RGBA_INTEGER, gl.NEAREST, gl.NEAREST, gl.UNSIGNED_INT);
+    tVoxels2 =                      webGL2.createTexture2D(compressedTextureSize, compressedTextureSize,               gl.RGBA32UI, gl.RGBA_INTEGER, gl.NEAREST, gl.NEAREST, gl.UNSIGNED_INT);
+
     tTriangles =                    webGL2.createTexture2D(compactTextureSize, compactTextureSize,                     gl.RGBA32F, gl.RGBA, gl.NEAREST, gl.NEAREST, gl.FLOAT);
     tNormals =                      webGL2.createTexture2D(compactTextureSize, compactTextureSize,                     gl.RGBA32F, gl.RGBA, gl.NEAREST, gl.NEAREST, gl.FLOAT);
+    tColors =                       webGL2.createTexture2D(compactTextureSize, compactTextureSize,                     gl.RGBA32F, gl.RGBA, gl.NEAREST, gl.NEAREST, gl.FLOAT);
     tVoxelsOffsets =                webGL2.createTexture2D(compactTextureSize, compactTextureSize,                     gl.RGBA32F, gl.RGBA, gl.NEAREST, gl.NEAREST, gl.FLOAT);
     tHelper =                       webGL2.createTexture2D(expandedTextureSize, expandedTextureSize,                   gl.RGBA32F, gl.RGBA, gl.NEAREST, gl.NEAREST, gl.FLOAT);
     t3DExpanded =                   webGL2.createTexture2D(expandedTextureSize, expandedTextureSize,                   gl.RGBA32F, gl.RGBA, gl.NEAREST, gl.NEAREST, gl.FLOAT);
@@ -124,7 +127,7 @@ let init = (_resolution, _expandedTextureSize, _compressedTextureSize, _compactT
     fbAmountOfTrianglesPerIndex =  webGL2.createDrawFramebuffer(tAmountOfTrianglesPerIndex);
     fbHelper =                     webGL2.createDrawFramebuffer(tHelper);
     fbMarchingCase =               webGL2.createDrawFramebuffer(tMarchingCase);
-    fbTriangles =                  webGL2.createDrawFramebuffer([tTriangles, tNormals, tVoxelsOffsets]);
+    fbTriangles =                  webGL2.createDrawFramebuffer([tTriangles, tNormals, tVoxelsOffsets, tColors]);
 
     tLevels = [];
     fbPyramid = [];
@@ -146,6 +149,7 @@ let init = (_resolution, _expandedTextureSize, _compressedTextureSize, _compactT
     setVoxelsProgram.particleSize =                 gl.getUniformLocation(setVoxelsProgram, "uSize");
     setVoxelsProgram.gridPartitioning =             gl.getUniformLocation(setVoxelsProgram, "u3D");
     setVoxelsProgram.particlesGridScale =           gl.getUniformLocation(setVoxelsProgram, "uParticlesGridScale");
+
 
     blur2DProgram =                                 webGL2.generateProgram(vsQuad, blur2D);
     blur2DProgram.dataTexture =                     gl.getUniformLocation(blur2DProgram, "uDT");
@@ -207,10 +211,8 @@ let generateMesh = (positionTexture, totalParticles, colorTexture, particlesGrid
     gl.blendEquation(gl.FUNC_ADD);
     gl.blendFunc(gl.ONE, gl.ONE);
 
-
     //Working with the compressed texture size
     gl.viewport(0, 0, compressedTextureSize, compressedTextureSize);
-
 
     //Place particles in the voxel space
     gl.useProgram(setVoxelsProgram);
@@ -220,7 +222,7 @@ let generateMesh = (positionTexture, totalParticles, colorTexture, particlesGrid
     gl.uniform1f(setVoxelsProgram.particlesGridScale, particlesGridScale);
     gl.uniform3f(setVoxelsProgram.gridPartitioning, 1. / compressedTextureSize, resolution, compressedBuckets);
     gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fbVoxels1);
-    gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.clearBufferuiv(gl.COLOR, 0, new Uint32Array([0, 0, 0, 0]));
     gl.enable(gl.BLEND);
 
     for (let i = 0; i < particlesSize; i++) {
@@ -230,7 +232,7 @@ let generateMesh = (positionTexture, totalParticles, colorTexture, particlesGrid
 
     gl.disable(gl.BLEND);
 
-    
+
     //Use a 3D blur for the potential generation.
     let blurXY = (buffer, texture, axis) => {
         gl.uniform2fv(blur2DProgram.axis, axis);
@@ -246,13 +248,14 @@ let generateMesh = (positionTexture, totalParticles, colorTexture, particlesGrid
     blurXY(fbVoxels2, tVoxels1, [k, 0]);
     blurXY(fbVoxels1, tVoxels2, [0, k]);
 
+
     gl.useProgram(blurDepthProgram);
     webGL2.bindTexture(blurDepthProgram.dataTexture, tVoxels1, 0);
     gl.uniform1i(blurDepthProgram.steps, blurSteps);
     gl.uniform1f(blurDepthProgram.depthLevels, depthLevels);
     gl.uniform3f(blurDepthProgram.gridPartitioning, 1. / compressedTextureSize, resolution, compressedBuckets);
     gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fbVoxels2);
-    gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.clearBufferuiv(gl.COLOR, 0, new Uint32Array([0, 0, 0, 0]));
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
 
@@ -341,5 +344,8 @@ export {init,
         tTriangles,
         tNormals,
         tVoxelsOffsets,
-        t3DExpanded
+        t3DExpanded,
+        tColors,
+        tVoxels1,
+        tVoxels2
 }

@@ -7,12 +7,7 @@ uniform float uSize;
 uniform vec3 u3D;
 uniform float uParticlesGridScale;
 
-out vec4 colorData;
-
-
-ivec4 intToRGBA(int data) {
-    return ivec4(data >> 24 & 255, data >> 16 & 255, data >> 8 & 255, data & 255);
-}
+flat out uvec4 colorData;
 
 uint rgbaToInt(int r, int g, int b, int p) {
     return uint((r & 255) << 24 | (g & 255) << 16 | (b & 255) << 8 | (p & 255));
@@ -38,9 +33,9 @@ void main() {
     gP.y = fract(gP.y);
     gP = 2. * gP - vec2(1.);
 
-    float encodedData = float(rgbaToInt(color.r, color.g, color.b, 255));
+    uint encodedData = rgbaToInt(200, 200, 200, 255);
 
-    colorData = encodedData * vec4(equal(vec4(depthLevel), vec4(0., 1., 2., 3.)));
+    colorData = encodedData * uvec4(equal(vec4(depthLevel), vec4(0., 1., 2., 3.)));
 
     gl_PointSize = uSize;
     gl_Position = vec4(gP, 0., 1.0);

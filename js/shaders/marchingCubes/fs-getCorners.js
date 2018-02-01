@@ -1,23 +1,46 @@
 const getCorners = `#version 300 es
 
 precision highp float;
+precision highp int;
 precision highp sampler2D;
-uniform sampler2D uDataTexture;
+precision highp usampler2D;
+uniform usampler2D uDataTexture;
 uniform vec3 u3D;
 uniform float uDepth;
 
 vec3 data[7];
 
 in vec2 uv;
-out vec4 colorData;
+out uvec4 colorData;
 
 vec2 index2D(vec3 pos) {
     return u3D.x * (pos.xz + u3D.y * vec2(mod(pos.y, u3D.z), floor(pos.y / u3D.z)) + vec2(0.5));
 }
 
+ivec4 intToRGBA(int data) {
+    return ivec4((data >> 24) & 255, (data >> 16) & 255, (data >> 8) & 255, data & 255);
+}
+
+uint rgbaToUInt(int r, int g, int b, int p) {
+    return uint((r & 255) << 24 | (g & 255) << 16 | (b & 255) << 8 | (p & 255));
+}
+
+void blendColor(in ivec3 color, inout ivec3 mixColor, inout int divider) {
+    int eval = length(vec3(color)) > 1.? 1 : 0;
+    mixColor += color * eval;
+    divider += eval;
+}
+
 void main(void) {
     vec2 pos = floor(uv / u3D.x);
     vec3 pos3D = vec3(mod(pos.y, u3D.y), u3D.z * floor(pos.y / u3D.y) + floor(pos.x / u3D.y), mod(pos.x, u3D.y));
+
+    ivec3 mixColor1 = ivec3(0);
+    ivec3 mixColor2 = ivec3(0);
+    ivec3 mixColor3 = ivec3(0);
+    ivec3 mixColor4 = ivec3(0);
+    ivec4 divider = ivec4(0);
+
 
     data[0] = vec3(-1., -1., -1.);
     data[1] = vec3(0., -1., -1.);
@@ -30,7 +53,7 @@ void main(void) {
     float currentZLevel = floor(pos3D.y / uDepth);
     vec2 uv  = index2D(pos3D);
     uv.y = fract(uv.y);
-    vec4 corner = texture(uDataTexture, uv);
+    ivec4 corner = ivec4(texture(uDataTexture, uv));
 
     vec3 newPos3D = vec3(0.);
     float zLevel = 0.;
@@ -42,13 +65,39 @@ void main(void) {
         uv = index2D(newPos3D);
         uv.y = fract(uv.y);
 
-        vec4 newBucket = texture(uDataTexture, uv);
-        vec3 cases = vec3(bvec3(zLevel < currentZLevel, zLevel == currentZLevel, zLevel > currentZLevel));
-        corner += vec4(0., newBucket.rgb) * cases.x + newBucket * cases.y + vec4(newBucket.gba, 0.) * cases.z;
+        ivec4 data = ivec4(texture(uDataTexture, uv));
+        ivec4 d1 = intToRGBA(data.r);
+        ivec4 d2 = intToRGBA(data.g);
+        ivec4 d3 = intToRGBA(data.b);
+        ivec4 d4 = intToRGBA(data.a);
+        ivec4 potential = ivec4(d1.a, d2.a, d3.a, d4.a);
+        
+        blendColor(d1.rgb, mixColor1, divider.r);
+        blendColor(d2.rgb, mixColor2, divider.g);
+        blendColor(d3.rgb, mixColor3, divider.b);
+        blendColor(d4.rgb, mixColor4, divider.a);
+                
+        ivec3 cases = ivec3(bvec3(zLevel < currentZLevel, zLevel == currentZLevel, zLevel > currentZLevel));
+        corner += ivec4(0, potential.rgb) * cases.x + potential * cases.y + ivec4(potential.gba, 0) * cases.z;
 
     }
+    
+    corner /= 8;
+    
+    mixColor1 /= max(divider.r, 1);    
+    mixColor2 /= max(divider.g, 1);    
+    mixColor3 /= max(divider.b, 1);    
+    mixColor4 /= max(divider.a, 1);
+    
+    uvec4 compressedData = uvec4(0);
+    
+    compressedData.r = rgbaToUInt(mixColor1.r, mixColor1.g, mixColor1.b, corner.r);
+    compressedData.g = rgbaToUInt(mixColor2.r, mixColor2.g, mixColor2.b, corner.g);
+    compressedData.b = rgbaToUInt(mixColor3.r, mixColor3.g, mixColor3.b, corner.b);
+    compressedData.a = rgbaToUInt(mixColor4.r, mixColor4.g, mixColor4.b, corner.a);
 
-    colorData = vec4(corner * 0.125);
+    colorData = compressedData;
+
 }
 
 `;
