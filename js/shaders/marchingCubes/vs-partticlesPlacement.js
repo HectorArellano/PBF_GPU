@@ -38,7 +38,7 @@ void main() {
     gP.y = fract(gP.y);
     gP = 2. * gP - vec2(1.);
 
-    float encodedData = float(rgbaToInt(color.r, color.g, color.b, 1));
+    float encodedData = float(rgbaToInt(color.r, color.g, color.b, 255));
 
     colorData = encodedData * vec4(equal(vec4(depthLevel), vec4(0., 1., 2., 3.)));
 

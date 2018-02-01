@@ -52,7 +52,7 @@ let depthLevels = 64;
 
 let compactTextureSize = 1500;
 
-let particleSize = 3.;
+let particleSize = 2.;
 let blurSteps = 10;
 let range = 0.26;
 let maxCells = 3.5;
@@ -151,11 +151,11 @@ let render = () => {
     gl.disable(gl.DEPTH_TEST);
 
 
-//    //Render the potential
-//    gl.viewport( canvas.height, 0, canvas.height, canvas.height);
-//    gl.useProgram(textureProgram);
-//    webGL2.bindTexture(textureProgram.texture, Mesher.t3DExpanded, 0);
-//    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+   //Render the potential
+   gl.viewport( canvas.height, 0, canvas.height, canvas.height);
+   gl.useProgram(textureProgram);
+   webGL2.bindTexture(textureProgram.texture, Mesher.tVoxels1, 0);
+   gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
 
     let activeMCells = Math.ceil(maxCells * expandedTextureSize * expandedTextureSize / 100);

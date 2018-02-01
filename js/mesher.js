@@ -255,7 +255,7 @@ let generateMesh = (positionTexture, totalParticles, colorTexture, particlesGrid
     gl.clear(gl.COLOR_BUFFER_BIT);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
-    
+
     //Evaluate the corners values for the potentials
     gl.useProgram(getCornersProgram);
     gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fbVoxels1);
