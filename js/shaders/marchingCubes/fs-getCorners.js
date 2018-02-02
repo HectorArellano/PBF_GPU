@@ -35,11 +35,8 @@ void main(void) {
     vec2 pos = floor(uv / u3D.x);
     vec3 pos3D = vec3(mod(pos.y, u3D.y), u3D.z * floor(pos.y / u3D.y) + floor(pos.x / u3D.y), mod(pos.x, u3D.y));
 
-    ivec3 mixColor1 = ivec3(0);
-    ivec3 mixColor2 = ivec3(0);
-    ivec3 mixColor3 = ivec3(0);
-    ivec3 mixColor4 = ivec3(0);
-    ivec4 divider = ivec4(0);
+
+    ivec4 divider = ivec4(1);
 
 
     data[0] = vec3(-1., -1., -1.);
@@ -53,7 +50,18 @@ void main(void) {
     float currentZLevel = floor(pos3D.y / uDepth);
     vec2 uv  = index2D(pos3D);
     uv.y = fract(uv.y);
-    ivec4 corner = ivec4(texture(uDataTexture, uv));
+    
+    ivec4 dat = ivec4(texture(uDataTexture, uv));
+    ivec4 d1 = intToRGBA(dat.r);
+    ivec4 d2 = intToRGBA(dat.g);
+    ivec4 d3 = intToRGBA(dat.b);
+    ivec4 d4 = intToRGBA(dat.a);
+    ivec3 mixColor1 = d1.rgb;
+    ivec3 mixColor2 = d2.rgb;
+    ivec3 mixColor3 = d3.rgb;
+    ivec3 mixColor4 = d4.rgb;
+    
+    ivec4 corner = ivec4(d1.a, d2.a, d3.a, d4.a);
 
     vec3 newPos3D = vec3(0.);
     float zLevel = 0.;
@@ -65,11 +73,11 @@ void main(void) {
         uv = index2D(newPos3D);
         uv.y = fract(uv.y);
 
-        ivec4 data = ivec4(texture(uDataTexture, uv));
-        ivec4 d1 = intToRGBA(data.r);
-        ivec4 d2 = intToRGBA(data.g);
-        ivec4 d3 = intToRGBA(data.b);
-        ivec4 d4 = intToRGBA(data.a);
+        dat = ivec4(texture(uDataTexture, uv));
+        d1 = intToRGBA(dat.r);
+        d2 = intToRGBA(dat.g);
+        d3 = intToRGBA(dat.b);
+        d4 = intToRGBA(dat.a);
         ivec4 potential = ivec4(d1.a, d2.a, d3.a, d4.a);
         
         blendColor(d1.rgb, mixColor1, divider.r);

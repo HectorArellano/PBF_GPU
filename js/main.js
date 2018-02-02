@@ -72,8 +72,8 @@ for (let i = 0; i < pbfResolution; i++) {
             if (x * x + y * y + z * z < radius * radius && k < pbfResolution * 0.4) {
                 particlesPosition.push(i, j, k, 1);
                 particlesVelocity.push(0, 0, 0, 0); //Velocity is zero for all the particles.
-                if(i < pbfResolution * 0.5) particlesColors.push(255, 0, 0, 0);
-                else particlesColors.push(255, 255, 0, 0);
+                if(i < pbfResolution * 0.5) particlesColors.push(0, 0, 255, 0);
+                else particlesColors.push(255, 0, 0, 0);
             }
         }
     }
