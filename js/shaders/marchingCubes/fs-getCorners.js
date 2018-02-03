@@ -35,10 +35,6 @@ void main(void) {
     vec2 pos = floor(uv / u3D.x);
     vec3 pos3D = vec3(mod(pos.y, u3D.y), u3D.z * floor(pos.y / u3D.y) + floor(pos.x / u3D.y), mod(pos.x, u3D.y));
 
-
-    ivec4 divider = ivec4(1);
-
-
     data[0] = vec3(-1., -1., -1.);
     data[1] = vec3(0., -1., -1.);
     data[2] = vec3(0., 0., -1.);
@@ -65,6 +61,7 @@ void main(void) {
 
     vec3 newPos3D = vec3(0.);
     float zLevel = 0.;
+    ivec4 divider = ivec4(1);
 
     for(int i = 0; i < 7; i ++) {
 
@@ -79,23 +76,26 @@ void main(void) {
         d3 = intToRGBA(dat.b);
         d4 = intToRGBA(dat.a);
         ivec4 potential = ivec4(d1.a, d2.a, d3.a, d4.a);
-        
-        blendColor(d1.rgb, mixColor1, divider.r);
-        blendColor(d2.rgb, mixColor2, divider.g);
-        blendColor(d3.rgb, mixColor3, divider.b);
-        blendColor(d4.rgb, mixColor4, divider.a);
                 
         ivec3 cases = ivec3(bvec3(zLevel < currentZLevel, zLevel == currentZLevel, zLevel > currentZLevel));
         corner += ivec4(0, potential.rgb) * cases.x + potential * cases.y + ivec4(potential.gba, 0) * cases.z;
+        
+        ivec4 zeroColor = ivec4(bvec4(length(vec3(d1.rgb)) > 1.0, length(vec3(d2.rgb)) > 1.0, length(vec3(d3.rgb)) > 1.0, length(vec3(d4.rgb)) > 1.0));
+        
+        mixColor1 += zeroColor.r * d1.rgb * cases.y;
+        mixColor2 += zeroColor.g * d2.rgb * cases.y;
+        mixColor3 += zeroColor.b * d3.rgb * cases.y;
+        mixColor4 += zeroColor.a * d4.rgb * cases.y;
+        
+        divider += zeroColor * cases.y;
 
     }
     
     corner /= 8;
-    
-    mixColor1 /= max(divider.r, 1);    
-    mixColor2 /= max(divider.g, 1);    
-    mixColor3 /= max(divider.b, 1);    
-    mixColor4 /= max(divider.a, 1);
+    mixColor1 /= divider.r;    
+    mixColor2 /= divider.g;    
+    mixColor3 /= divider.b;    
+    mixColor4 /= divider.a;
     
     uvec4 compressedData = uvec4(0);
     

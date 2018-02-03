@@ -227,7 +227,7 @@ let generateMesh = (positionTexture, totalParticles, colorTexture, particlesGrid
     gl.enable(gl.BLEND);
 
     for (let i = 0; i < particlesSize; i++) {
-        gl.uniform1f(setVoxelsProgram.phase, i);
+        gl.uniform1f(setVoxelsProgram.phase, i - 1);
         gl.drawArrays(gl.POINTS, 0, totalParticles);
     }
 

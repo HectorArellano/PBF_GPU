@@ -19,12 +19,6 @@ uint rgbaToUInt(int r, int g, int b, int p) {
     return uint((r & 255) << 24 | (g & 255) << 16 | (b & 255) << 8 | (p & 255) << 0);
 }
 
-void blendColor(in ivec3 color, inout ivec3 mixColor, inout int divider) {
-    int eval = length(vec3(color)) > 1.? 1 : 0;
-    mixColor += color * eval;
-    divider += eval;
-}
-
 void main(void) {
 
     float border = .1;
@@ -38,12 +32,12 @@ void main(void) {
     ivec3 mixColor2 = ivec3(0);
     ivec3 mixColor3 = ivec3(0);
     ivec3 mixColor4 = ivec3(0);
-    ivec4 divider = ivec4(0);
     
     float n = float(uSteps);
     ivec4 blend = ivec4(0);
     int sum = 1;
     int m = 1;
+    ivec4 divider = ivec4(0);
     
     for (int i = 0; i < 2 * uSteps; i += 1) {
 
@@ -56,20 +50,37 @@ void main(void) {
 
         ivec4 potential = ivec4(d1.a, d2.a, d3.a, d4.a);
 
-        blendColor(d1.rgb, mixColor1, divider.r);
-        blendColor(d2.rgb, mixColor2, divider.g);
-        blendColor(d3.rgb, mixColor3, divider.b);
-        blendColor(d4.rgb, mixColor4, divider.a);
-
         blend += zero * m * potential;
+        
+        ivec4 zeroColor = ivec4(bvec4(length(vec3(d1.rgb)) > 1.0, length(vec3(d2.rgb)) > 1.0, length(vec3(d3.rgb)) > 1.0, length(vec3(d4.rgb)) > 1.0));
+        
+        mixColor1 += zero * zeroColor.r * m * d1.rgb;
+        mixColor2 += zero * zeroColor.g * m * d2.rgb;
+        mixColor3 += zero * zeroColor.b * m * d3.rgb;
+        mixColor4 += zero * zeroColor.a * m * d4.rgb;
+        
         m *= (uSteps - i) / (i + 1);
         sum += m;
+        
+        divider += zero * zeroColor * ivec4(m);
     } 
     blend /= sum;
-    mixColor1 /= max(divider.r, 1);    
-    mixColor2 /= max(divider.g, 1);    
-    mixColor3 /= max(divider.b, 1);    
-    mixColor4 /= max(divider.a, 1);
+    mixColor1 /= max(divider.x, 1);    
+    mixColor2 /= max(divider.y, 1);    
+    mixColor3 /= max(divider.z, 1);    
+    mixColor4 /= max(divider.w, 1);
+    
+    ivec4 data = ivec4(texture(uDT, uv));
+    ivec4 d1 = intToRGBA(data.r);
+    ivec4 d2 = intToRGBA(data.g);
+    ivec4 d3 = intToRGBA(data.b);
+    ivec4 d4 = intToRGBA(data.a);
+    ivec4 zeroColor = ivec4(bvec4(length(vec3(d1.rgb)) > 1.0, length(vec3(d2.rgb)) > 1.0, length(vec3(d3.rgb)) > 1.0, length(vec3(d4.rgb)) > 1.0));
+    
+    mixColor1 = zeroColor.r * d1.rgb + (1 - zeroColor.r) * mixColor1;
+    mixColor2 = zeroColor.g * d2.rgb + (1 - zeroColor.g) * mixColor2;
+    mixColor3 = zeroColor.b * d3.rgb + (1 - zeroColor.b) * mixColor3;
+    mixColor4 = zeroColor.a * d4.rgb + (1 - zeroColor.a) * mixColor4;   
     
     uvec4 compressedData = uvec4(0);
     

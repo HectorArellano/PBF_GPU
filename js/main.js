@@ -29,35 +29,36 @@ let FOV = 30;
 
 //For the Position Based Fluids
 let updateSimulation = true;
-let deltaTime = 0.01;
+let deltaTime = 0.007;
 let constrainsIterations = 1;
-let pbfResolution = 64;
-let voxelTextureSize = 512;
-let particlesTextureSize = 1000;
+let pbfResolution = 128;
+let voxelTextureSize = 2048;
+let particlesTextureSize = 1024;
 let particlesPosition = [];
 let particlesVelocity = [];
 let particlesColors = [];
 let currentFrame = 0;
 
 //Change these values to change marching cubes resolution (128/2048/1024 or 256/4096/2048)
-let resolution = 128;
+let resolution = 256;
 
-let expandedTextureSize = 2048;
+let expandedTextureSize = 4096;
 let expandedBuckets = 16;
 
-let compressedTextureSize = 1024;
+let compressedTextureSize = 2048;
 let compressedBuckets = 8;
 
 let depthLevels = 64;
 
-let compactTextureSize = 1500;
+let compactTextureSize = 2500;
 
-let particleSize = 2.;
-let blurSteps = 2;
-let range = 0.26;
+let particleSize = 3.;
+let blurSteps = 16;
+let range = 0.35;
 let maxCells = 3.5;
 let fastNormals = false;
 let radius = pbfResolution * 0.39;
+let radius2 = pbfResolution * 0.1;
 
 //Generate the position and velocity
 for (let i = 0; i < pbfResolution; i++) {
@@ -72,9 +73,22 @@ for (let i = 0; i < pbfResolution; i++) {
             if (x * x + y * y + z * z < radius * radius && k < pbfResolution * 0.4) {
                 particlesPosition.push(i, j, k, 1);
                 particlesVelocity.push(0, 0, 0, 0); //Velocity is zero for all the particles.
-                if(i < pbfResolution * 0.5) particlesColors.push(0, 0, 255, 0);
-                else particlesColors.push(255, 0, 0, 0);
+
+                if(i < pbfResolution * 0.2) particlesColors.push(251, 244, 66, 0);
+                if(i > pbfResolution * 0.2 && i <= pbfResolution * 0.4) particlesColors.push(201, 41, 33, 0);
+                if(i > pbfResolution * 0.4 && i <= pbfResolution * 0.6) particlesColors.push(73, 128, 193, 0);
+                if(i > pbfResolution * 0.6 && i <= pbfResolution * 0.8) particlesColors.push(241, 46, 106, 0);
+                if(i > pbfResolution * 0.8) particlesColors.push(102, 95, 97, 0);
             }
+
+            // y = j - pbfResolution * 0.8;
+            //
+            // if (x * x + y * y + z * z < radius2 * radius2) {
+            //     particlesPosition.push(i, j, k, 1);
+            //     particlesVelocity.push(0, -45, 0, 0); //Velocity is zero for all the particles.
+            //     let u = i % 5;
+            //     particlesColors.push(255, 255, 255, 0);
+            // }
         }
     }
 }
@@ -86,6 +100,7 @@ let colorsTexture = webGL2.createTexture2D(particlesTextureSize, particlesTextur
 
 let renderParticlesProgram = webGL2.generateProgram(vsParticles, fsColor);
 renderParticlesProgram.positionTexture = gl.getUniformLocation(renderParticlesProgram, "uTexturePosition");
+renderParticlesProgram.colorTexture = gl.getUniformLocation(renderParticlesProgram, "uColors");
 renderParticlesProgram.cameraMatrix = gl.getUniformLocation(renderParticlesProgram, "uCameraMatrix");
 renderParticlesProgram.perspectiveMatrix = gl.getUniformLocation(renderParticlesProgram, "uPMatrix");
 renderParticlesProgram.scale = gl.getUniformLocation(renderParticlesProgram, "uScale");
@@ -143,6 +158,7 @@ let render = () => {
     gl.viewport(0, 0, canvas.height, canvas.height);
     gl.useProgram(renderParticlesProgram);
     webGL2.bindTexture(renderParticlesProgram.positionTexture, PBF.positionTexture, 0);
+    webGL2.bindTexture(renderParticlesProgram.colorTexture, colorsTexture, 1);
     gl.uniform1f(renderParticlesProgram.scale, pbfResolution);
     gl.uniformMatrix4fv(renderParticlesProgram.cameraMatrix, false, camera.cameraTransformMatrix);
     gl.uniformMatrix4fv(renderParticlesProgram.perspectiveMatrix, false, camera.perspectiveMatrix);
