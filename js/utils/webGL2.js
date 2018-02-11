@@ -12,7 +12,7 @@ let contextReady = false;
 
 //Generate the context using the provided canvas
 const setContext = canvas => {
-    gl = canvas.getContext('webgl2');
+    gl = canvas.getContext('webgl2', {premultipliedAlpha: true});
 
     //Load the extension to draw inside floating point textures
     gl.getExtension('EXT_color_buffer_float');
@@ -32,6 +32,7 @@ const generateProgram = (vertexShader, fragmentShader) => {
         gl.linkProgram(program);
         if (! gl.getProgramParameter( program,  gl.LINK_STATUS)) {
             console.log(new Error("Could not generate the program"));
+            console.log(gl.getProgramInfoLog(program));
             return null;
         }
         return program;

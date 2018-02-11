@@ -43,7 +43,7 @@ void main(void) {
     data[5] = vec3(0., -1., 0.);
     data[6] = vec3(-1., 0., 0.);
 
-    float currentZLevel = floor(pos3D.y / uDepth);
+    float currentDepthLevel = floor(pos3D.y / uDepth);
     vec2 uv  = index2D(pos3D);
     uv.y = fract(uv.y);
     
@@ -60,13 +60,12 @@ void main(void) {
     ivec4 corner = ivec4(d1.a, d2.a, d3.a, d4.a);
 
     vec3 newPos3D = vec3(0.);
-    float zLevel = 0.;
-    ivec4 divider = ivec4(1);
+    float depthLevel = 0.;
 
     for(int i = 0; i < 7; i ++) {
 
         newPos3D = pos3D + data[i];
-        zLevel = floor(newPos3D.y / uDepth);
+        depthLevel = floor(newPos3D.y / uDepth);
         uv = index2D(newPos3D);
         uv.y = fract(uv.y);
 
@@ -77,25 +76,38 @@ void main(void) {
         d4 = intToRGBA(dat.a);
         ivec4 potential = ivec4(d1.a, d2.a, d3.a, d4.a);
                 
-        ivec3 cases = ivec3(bvec3(zLevel < currentZLevel, zLevel == currentZLevel, zLevel > currentZLevel));
+        bvec3 masks = bvec3(depthLevel < currentDepthLevel, depthLevel == currentDepthLevel, depthLevel > currentDepthLevel);
+        ivec3 cases = ivec3(masks);        
         corner += ivec4(0, potential.rgb) * cases.x + potential * cases.y + ivec4(potential.gba, 0) * cases.z;
         
-        ivec4 zeroColor = ivec4(bvec4(length(vec3(d1.rgb)) > 1.0, length(vec3(d2.rgb)) > 1.0, length(vec3(d3.rgb)) > 1.0, length(vec3(d4.rgb)) > 1.0));
+        if(masks.x) {
+            mixColor1 += ivec3(0);
+            mixColor2 += d1.rgb;
+            mixColor3 += d2.rgb;
+            mixColor4 += d3.rgb;
+        }
+
+        if(masks.y) {
+            mixColor1 += d1.rgb;
+            mixColor2 += d2.rgb;
+            mixColor3 += d3.rgb;
+            mixColor4 += d4.rgb;
+        }
         
-        mixColor1 += zeroColor.r * d1.rgb * cases.y;
-        mixColor2 += zeroColor.g * d2.rgb * cases.y;
-        mixColor3 += zeroColor.b * d3.rgb * cases.y;
-        mixColor4 += zeroColor.a * d4.rgb * cases.y;
-        
-        divider += zeroColor * cases.y;
+        if(masks.z) {
+            mixColor1 += d2.rgb;
+            mixColor2 += d3.rgb;
+            mixColor3 += d4.rgb;
+            mixColor4 += ivec3(0);
+        }
 
     }
     
     corner /= 8;
-    mixColor1 /= divider.r;    
-    mixColor2 /= divider.g;    
-    mixColor3 /= divider.b;    
-    mixColor4 /= divider.a;
+    mixColor1 /= 8;    
+    mixColor2 /= 8;    
+    mixColor3 /= 8;    
+    mixColor4 /= 8;
     
     uvec4 compressedData = uvec4(0);
     

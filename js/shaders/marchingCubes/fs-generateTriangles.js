@@ -130,7 +130,7 @@ void main(void) {
         
         //Potential values in the corresponding corners
         vec4 n0 = texture(uPot, index2D(u3D.y * b0));
-        vec4 n1 = texture(uPot, index2D(u3D.y * b1));
+        vec4 n1 = texture(uPot, index2D(u3D.y * b1));        
         vec2 diff1 = vec2(uRange - n0.r, n1.r - n0.r);
         
         //Value used to evaluate the linear interpolation between the two corners points to define the position of the vertex to generate.

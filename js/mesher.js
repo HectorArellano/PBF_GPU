@@ -4,9 +4,10 @@ import  {ti5, trianglesOnVoxels}    from './utils/marchingCubesTables.js';
 
 //Shaders
 import {vsQuad}                     from './shaders/utils/vs-quad.js';
-import {fsColor}                    from './shaders/utils/fs-simpleUIColor.js';
+import {fsColor}                    from './shaders/utils/fs-simpleColor.js';
 import {fsTextureColor}             from './shaders/utils/fs-simpleTexture.js';
-import {vsParticlesPlacement}       from './shaders/marchingCubes/vs-particlesPlacement.js';
+import {encodeChannels}             from './shaders/marchingCubes/fs-encodeChannels.js';
+import {vsParticlesPlacement}       from './shaders/marchingCubes/vs-voxelsExpanded.js';
 import {blur2D}                     from './shaders/marchingCubes/fs-blu2D.js';
 import {blurDepth}                  from './shaders/marchingCubes/fs-blurDepth.js';
 import {getCorners}                 from './shaders/marchingCubes/fs-getCorners.js';
@@ -44,7 +45,8 @@ let tVoxels1,
     t3DExpanded,
     tMarchingCase,
     tAmountOfTrianglesPerIndex,
-    tIndexes;
+    tIndexes,
+    tColorsExpanded;
 
 //Framebuffers for textures
 let fbVoxels1,
@@ -54,7 +56,8 @@ let fbVoxels1,
     fbAmountOfTrianglesPerIndex,
     fbHelper,
     fbMarchingCase,
-    fbTriangles;
+    fbTriangles,
+    fbSplitting;
 
 //Shader programs
 let setVoxelsProgram,
@@ -65,6 +68,7 @@ let setVoxelsProgram,
     splitChannelsProgram,
     generatePyramidProgram,
     textureProgram,
+    encodeChannelsProgram,
     generateTrianglesProgram;
 
 //For the pyramid generation (stream compaction)
@@ -112,11 +116,12 @@ let init = (_resolution, _expandedTextureSize, _compressedTextureSize, _compactT
     tTriangles =                    webGL2.createTexture2D(compactTextureSize, compactTextureSize,                     gl.RGBA32F, gl.RGBA, gl.NEAREST, gl.NEAREST, gl.FLOAT);
     tNormals =                      webGL2.createTexture2D(compactTextureSize, compactTextureSize,                     gl.RGBA32F, gl.RGBA, gl.NEAREST, gl.NEAREST, gl.FLOAT);
     tColors =                       webGL2.createTexture2D(compactTextureSize, compactTextureSize,                     gl.RGBA32F, gl.RGBA, gl.NEAREST, gl.NEAREST, gl.FLOAT);
-
     tVoxelsOffsets =                webGL2.createTexture2D(compactTextureSize, compactTextureSize,                     gl.RGBA32F, gl.RGBA, gl.NEAREST, gl.NEAREST, gl.FLOAT);
+
     tHelper =                       webGL2.createTexture2D(expandedTextureSize, expandedTextureSize,                   gl.RGBA32F, gl.RGBA, gl.NEAREST, gl.NEAREST, gl.FLOAT);
     t3DExpanded =                   webGL2.createTexture2D(expandedTextureSize, expandedTextureSize,                   gl.RGBA32F, gl.RGBA, gl.NEAREST, gl.NEAREST, gl.FLOAT);
     tMarchingCase =                 webGL2.createTexture2D(expandedTextureSize, expandedTextureSize,                   gl.RGBA32F, gl.RGBA, gl.NEAREST, gl.NEAREST, gl.FLOAT);
+
     tAmountOfTrianglesPerIndex =    webGL2.createTexture2D(amountOfTrianglesTextureSize, amountOfTrianglesTextureSize, gl.RGBA32F, gl.RGBA, gl.NEAREST, gl.NEAREST, gl.FLOAT, new Float32Array(arrayTriVoxel));
     tIndexes =                      webGL2.createTexture2D(indexesTextureSize, indexesTextureSize,                     gl.RGBA32F, gl.RGBA, gl.NEAREST, gl.NEAREST, gl.FLOAT, new Float32Array(arrayTriIndex));
 
@@ -129,6 +134,7 @@ let init = (_resolution, _expandedTextureSize, _compressedTextureSize, _compactT
     fbHelper =                     webGL2.createDrawFramebuffer(tHelper);
     fbMarchingCase =               webGL2.createDrawFramebuffer(tMarchingCase);
     fbTriangles =                  webGL2.createDrawFramebuffer([tTriangles, tNormals, tVoxelsOffsets, tColors]);
+
 
     tLevels = [];
     fbPyramid = [];
@@ -146,10 +152,18 @@ let init = (_resolution, _expandedTextureSize, _compressedTextureSize, _compactT
     setVoxelsProgram =                              webGL2.generateProgram(vsParticlesPlacement, fsColor);
     setVoxelsProgram.positionTexture =              gl.getUniformLocation(setVoxelsProgram, "uTexturePosition");
     setVoxelsProgram.colorTexture =                 gl.getUniformLocation(setVoxelsProgram, "uColors");
-    setVoxelsProgram.phase =                        gl.getUniformLocation(setVoxelsProgram, "uPhase");
+    setVoxelsProgram.totalParticles =               gl.getUniformLocation(setVoxelsProgram, "uTotalParticles");
     setVoxelsProgram.particleSize =                 gl.getUniformLocation(setVoxelsProgram, "uSize");
     setVoxelsProgram.gridPartitioning =             gl.getUniformLocation(setVoxelsProgram, "u3D");
     setVoxelsProgram.particlesGridScale =           gl.getUniformLocation(setVoxelsProgram, "uParticlesGridScale");
+    setVoxelsProgram.phase =                        gl.getUniformLocation(setVoxelsProgram, "uPhase");
+
+    encodeChannelsProgram =                          webGL2.generateProgram(vsQuad, encodeChannels);
+    encodeChannelsProgram.dataTexture =              gl.getUniformLocation(encodeChannelsProgram, "uDataTexture");
+    encodeChannelsProgram.colorTexture =             gl.getUniformLocation(encodeChannelsProgram, "uColors");
+    encodeChannelsProgram.gridPartitioningLow =      gl.getUniformLocation(encodeChannelsProgram, "u3D_l");
+    encodeChannelsProgram.gridPartitioningHigh =     gl.getUniformLocation(encodeChannelsProgram, "u3D_h");
+    encodeChannelsProgram.depthLevels =              gl.getUniformLocation(encodeChannelsProgram, "uDepth");
 
 
     blur2DProgram =                                 webGL2.generateProgram(vsQuad, blur2D);
@@ -209,29 +223,46 @@ let init = (_resolution, _expandedTextureSize, _compressedTextureSize, _compactT
 //Function used to generate a 3D mesh using the marching cubes algorithm
 let generateMesh = (positionTexture, totalParticles, colorTexture, particlesGridScale, particlesSize, blurSteps, range, maxCells, fastNormals) => {
 
-    gl.blendEquation(gl.FUNC_ADD);
-    gl.blendFunc(gl.ONE, gl.ONE);
 
-    //Working with the compressed texture size
-    gl.viewport(0, 0, compressedTextureSize, compressedTextureSize);
+    //Place particles in the voxel space for the potential creation.
+    gl.viewport(0, 0, expandedTextureSize, expandedTextureSize);
 
-    //Place particles in the voxel space
     gl.useProgram(setVoxelsProgram);
     webGL2.bindTexture(setVoxelsProgram.positionTexture, positionTexture, 0);
     webGL2.bindTexture(setVoxelsProgram.colorTexture, colorTexture, 1);
-    gl.uniform1f(setVoxelsProgram.particleSize, particlesSize);
+    gl.uniform1f(setVoxelsProgram.phase, 1);
+    gl.uniform1f(setVoxelsProgram.totalParticles, totalParticles);
     gl.uniform1f(setVoxelsProgram.particlesGridScale, particlesGridScale);
-    gl.uniform3f(setVoxelsProgram.gridPartitioning, 1. / compressedTextureSize, resolution, compressedBuckets);
-    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fbVoxels1);
-    gl.clearBufferuiv(gl.COLOR, 0, new Uint32Array([0, 0, 0, 0]));
+    gl.uniform3f(setVoxelsProgram.gridPartitioning, expandedTextureSize, resolution, expandedBuckets);
+
+    let potentialSize = 3;
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fb3DExpanded);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.uniform1f(setVoxelsProgram.particleSize, potentialSize);
+    gl.drawArrays(gl.POINTS, 0, potentialSize * totalParticles);
+
+    //Place particles in the voxel space for the potential creation. This is for the color
+    let colorSize = 8;
+    gl.uniform1f(setVoxelsProgram.particleSize, colorSize);
+    gl.uniform1f(setVoxelsProgram.phase, 0.);
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fbHelper);
+    gl.clear(gl.COLOR_BUFFER_BIT);
     gl.enable(gl.BLEND);
-
-    for (let i = 0; i < particlesSize; i++) {
-        gl.uniform1f(setVoxelsProgram.phase, i - 1);
-        gl.drawArrays(gl.POINTS, 0, totalParticles);
-    }
-
+    gl.blendFunc(gl.ONE, gl.ONE);
+    gl.drawArrays(gl.POINTS, 0, colorSize * totalParticles);
     gl.disable(gl.BLEND);
+
+
+    //encode the channels for compression of the potential
+    gl.viewport(0, 0, compressedTextureSize, compressedTextureSize);
+    gl.useProgram(encodeChannelsProgram);
+    webGL2.bindTexture(encodeChannelsProgram.dataTexture, t3DExpanded, 0);
+    webGL2.bindTexture(encodeChannelsProgram.colorTexture, tHelper, 1);
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fbVoxels1);
+    gl.uniform3f(encodeChannelsProgram.gridPartitioningLow, compressedTextureSize, resolution, compressedBuckets);
+    gl.uniform3f(encodeChannelsProgram.gridPartitioningHigh, expandedTextureSize, resolution, expandedBuckets);
+    gl.uniform1f(encodeChannelsProgram.depthLevels, depthLevels);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
 
     //Use a 3D blur for the potential generation.
@@ -251,16 +282,16 @@ let generateMesh = (positionTexture, totalParticles, colorTexture, particlesGrid
 
 
     gl.useProgram(blurDepthProgram);
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fbVoxels2);
     webGL2.bindTexture(blurDepthProgram.dataTexture, tVoxels1, 0);
     gl.uniform1i(blurDepthProgram.steps, blurSteps);
     gl.uniform1f(blurDepthProgram.depthLevels, depthLevels);
     gl.uniform3f(blurDepthProgram.gridPartitioning, 1. / compressedTextureSize, resolution, compressedBuckets);
-    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fbVoxels2);
     gl.clearBufferuiv(gl.COLOR, 0, new Uint32Array([0, 0, 0, 0]));
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
 
-    //Evaluate the corners values for the potentials
+    // Evaluate the corners values for the potentials
     gl.useProgram(getCornersProgram);
     gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fbVoxels1);
     webGL2.bindTexture(getCornersProgram.dataTexture, tVoxels2, 0);
@@ -277,8 +308,8 @@ let generateMesh = (positionTexture, totalParticles, colorTexture, particlesGrid
     gl.useProgram(splitChannelsProgram);
     webGL2.bindTexture(splitChannelsProgram.dataTexture, tVoxels1, 0);
     gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fb3DExpanded);
-    gl.uniform3f(splitChannelsProgram.gridPartitioningLow, 1. / compressedTextureSize, resolution, compressedBuckets);
-    gl.uniform3f(splitChannelsProgram.gridPartitioningHigh, 1. / expandedTextureSize, resolution, expandedBuckets);
+    gl.uniform3f(splitChannelsProgram.gridPartitioningLow, compressedTextureSize, resolution, compressedBuckets);
+    gl.uniform3f(splitChannelsProgram.gridPartitioningHigh, expandedTextureSize, resolution, expandedBuckets);
     gl.uniform1f(splitChannelsProgram.depthLevels, depthLevels);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
@@ -348,5 +379,7 @@ export {init,
         t3DExpanded,
         tColors,
         tVoxels1,
-        tVoxels2
+        tVoxels2,
+        tHelper,
+        tColorsExpanded
 }

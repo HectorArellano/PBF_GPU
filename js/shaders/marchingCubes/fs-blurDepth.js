@@ -25,12 +25,12 @@ uint rgbaToUInt(int r, int g, int b, int p) {
     
 void main(void) {
 
-    float border = .1;
+    float border = 1.;
     
     vec2 pos = floor(uv / u3D.x);
     vec3 pos3D = vec3(mod(pos.y, u3D.y), u3D.z * floor(pos.y / u3D.y) + floor(pos.x / u3D.y), mod(pos.x, u3D.y));
     vec3 newPos3D = vec3(0.);
-    vec2 uv = vec2(0.);
+    vec2 st = vec2(0.);
     float depthLevel = 0.;
 
     float currentDepthLevel = floor(pos3D.y / uDepth);
@@ -50,16 +50,16 @@ void main(void) {
     
     ivec4 divider = ivec4(0);
 
-    for (int i = 0; i < 2 * uSteps; i += 1) {
+    for (int i = 0; i <= 2 * uSteps; i += 1) {
 
-        newPos3D = pos3D - (float(i) - 0.5 * n) * vec3(0., 1., 0.);
+        newPos3D = pos3D - (float(i) - n) * vec3(0., 1., 0.);
 
         depthLevel = floor(newPos3D.y / uDepth);  
 
-        uv = u3D.x * (newPos3D.xz + u3D.y * vec2(mod(newPos3D.y, u3D.z), floor(newPos3D.y / u3D.z)) + vec2(0.5));
-        uv.y = fract(uv.y);
-        
-        ivec4 data = ivec4(texture(uDataTexture, uv));
+        st = u3D.x * (newPos3D.zx + u3D.y * vec2(mod(newPos3D.y, u3D.z), floor(newPos3D.y / u3D.z)) + vec2(0.5));
+        st.y = fract(st.y);
+
+        ivec4 data = ivec4(texture(uDataTexture, st));
         ivec4 d1 = intToRGBA(data.r);
         ivec4 d2 = intToRGBA(data.g);
         ivec4 d3 = intToRGBA(data.b);
@@ -67,45 +67,58 @@ void main(void) {
 
         ivec4 potential = ivec4(d1.a, d2.a, d3.a, d4.a);
 
-        
-        ivec3 cases = ivec3(bvec3(depthLevel < currentDepthLevel, depthLevel == currentDepthLevel, depthLevel > currentDepthLevel));
-        
+        bvec3 masks = bvec3(depthLevel < currentDepthLevel, depthLevel == currentDepthLevel, depthLevel > currentDepthLevel);
+        ivec3 cases = ivec3(masks);
         blend += zero * m * (ivec4(0, potential.rgb) * cases.x + potential * cases.y + ivec4(potential.gba, 0) * cases.z);
+
+        if(masks.x) {
+            mixColor1 += ivec3(0);
+            mixColor2 += m * d1.rgb;
+            mixColor3 += m * d2.rgb;
+            mixColor4 += m * d3.rgb;
+        }
+
+        if(masks.y) {
+            mixColor1 += m * d1.rgb;
+            mixColor2 += m * d2.rgb;
+            mixColor3 += m * d3.rgb;
+            mixColor4 += m * d4.rgb;
+        }
         
-        ivec4 zeroColor = ivec4(bvec4(length(vec3(d1.rgb)) > 1.0, length(vec3(d2.rgb)) > 1.0, length(vec3(d3.rgb)) > 1.0, length(vec3(d4.rgb)) > 1.0));
-        
-        mixColor1 += zero * zeroColor.r * m * d1.rgb *  cases.y;
-        mixColor2 += zero * zeroColor.g * m * d2.rgb *  cases.y;
-        mixColor3 += zero * zeroColor.b * m * d3.rgb *  cases.y;
-        mixColor4 += zero * zeroColor.a * m * d4.rgb *  cases.y;
-        
+        if(masks.z) {
+            mixColor1 += m * d2.rgb;
+            mixColor2 += m * d3.rgb;
+            mixColor3 += m * d4.rgb;
+            mixColor4 += ivec3(0);
+        }
+
         m *= (uSteps - i) / (i + 1);
         sum += m;
-        
-        divider += zero * zeroColor * ivec4(m) *  cases.y;
+
+        divider += ivec4(m);
 
     }
 
     blend /= sum;
-    mixColor1 /= max(divider.x, 1);    
-    mixColor2 /= max(divider.y, 1);    
-    mixColor3 /= max(divider.z, 1);    
-    mixColor4 /= max(divider.w, 1);
+    mixColor1 /= sum;    
+    mixColor2 /= sum;    
+    mixColor3 /= sum;    
+    mixColor4 /= sum;
 
-    depthLevel = floor(pos3D.y / uDepth);  
-    uv = u3D.x * (pos3D.xz + u3D.y * vec2(mod(pos3D.y, u3D.z), floor(pos3D.y / u3D.z)) + vec2(0.5));
-    uv.y = fract(uv.y);
-    ivec4 data = ivec4(texture(uDataTexture, uv));
-    ivec4 d1 = intToRGBA(data.r);
-    ivec4 d2 = intToRGBA(data.g);
-    ivec4 d3 = intToRGBA(data.b);
-    ivec4 d4 = intToRGBA(data.a);
-    ivec4 zeroColor = ivec4(bvec4(length(vec3(d1.rgb)) > 1.0, length(vec3(d2.rgb)) > 1.0, length(vec3(d3.rgb)) > 1.0, length(vec3(d4.rgb)) > 1.0));
 
-    mixColor1 = zeroColor.r * d1.rgb + (1 - zeroColor.r) * mixColor1;
-    mixColor2 = zeroColor.g * d2.rgb + (1 - zeroColor.g) * mixColor2;
-    mixColor3 = zeroColor.b * d3.rgb + (1 - zeroColor.b) * mixColor3;
-    mixColor4 = zeroColor.a * d4.rgb + (1 - zeroColor.a) * mixColor4;
+    // depthLevel = floor(pos3D.y / uDepth);  
+    // st = u3D.x * (pos3D.xz + u3D.y * vec2(mod(pos3D.y, u3D.z), floor(pos3D.y / u3D.z)) + vec2(0.5));
+    // st.y = fract(st.y);
+    // ivec4 data = ivec4(texture(uDataTexture, uv));
+    // ivec4 d1 = intToRGBA(data.r);
+    // ivec4 d2 = intToRGBA(data.g);
+    // ivec4 d3 = intToRGBA(data.b);
+    // ivec4 d4 = intToRGBA(data.a);
+    //
+    // mixColor1 = d1.rgb;
+    // mixColor2 = d2.rgb;
+    // mixColor3 = d3.rgb;
+    // mixColor4 = d4.rgb;
     
     uvec4 compressedData = uvec4(0);
     

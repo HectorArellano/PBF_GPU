@@ -1,4 +1,4 @@
-const fsColor = `#version 300 es
+const fsUIColor = `#version 300 es
     precision highp float;
 
     flat in uvec4 colorData;
@@ -9,4 +9,4 @@ const fsColor = `#version 300 es
     }
 `;
 
-export {fsColor};
+export {fsUIColor};

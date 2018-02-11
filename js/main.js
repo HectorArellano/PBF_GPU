@@ -52,11 +52,11 @@ let depthLevels = 64;
 
 let compactTextureSize = 2500;
 
-let particleSize = 3.;
-let blurSteps = 16;
-let range = 0.35;
+let particleSize = 5.;
+let blurSteps = 4;
+let range = 0.3;
 let maxCells = 3.5;
-let fastNormals = false;
+let fastNormals = true;
 let radius = pbfResolution * 0.39;
 let radius2 = pbfResolution * 0.1;
 
@@ -74,11 +74,11 @@ for (let i = 0; i < pbfResolution; i++) {
                 particlesPosition.push(i, j, k, 1);
                 particlesVelocity.push(0, 0, 0, 0); //Velocity is zero for all the particles.
 
-                if(i < pbfResolution * 0.2) particlesColors.push(251, 244, 66, 0);
-                if(i > pbfResolution * 0.2 && i <= pbfResolution * 0.4) particlesColors.push(201, 41, 33, 0);
-                if(i > pbfResolution * 0.4 && i <= pbfResolution * 0.6) particlesColors.push(73, 128, 193, 0);
-                if(i > pbfResolution * 0.6 && i <= pbfResolution * 0.8) particlesColors.push(241, 46, 106, 0);
-                if(i > pbfResolution * 0.8) particlesColors.push(102, 95, 97, 0);
+                if(i < pbfResolution * 0.3) particlesColors.push(251, 244, 66, 0);
+                if(i > pbfResolution * 0.3 && i <= pbfResolution * 0.45) particlesColors.push(201, 41, 33, 0);
+                if(i > pbfResolution * 0.45 && i <= pbfResolution * 0.55) particlesColors.push(73, 128, 193, 0);
+                if(i > pbfResolution * 0.55 && i <= pbfResolution * 0.7) particlesColors.push(241, 46, 106, 0);
+                if(i > pbfResolution * 0.7) particlesColors.push(102, 95, 97, 0);
             }
 
             // y = j - pbfResolution * 0.8;
@@ -114,6 +114,7 @@ phongTrianglesProgram.cameraMatrix = gl.getUniformLocation(phongTrianglesProgram
 phongTrianglesProgram.perspectiveMatrix = gl.getUniformLocation(phongTrianglesProgram, "uPMatrix");
 phongTrianglesProgram.textureTriangles = gl.getUniformLocation(phongTrianglesProgram, "uTT");
 phongTrianglesProgram.textureNormals = gl.getUniformLocation(phongTrianglesProgram, "uTN");
+phongTrianglesProgram.textureColors = gl.getUniformLocation(phongTrianglesProgram, "uColors");
 phongTrianglesProgram.cameraPosition = gl.getUniformLocation(phongTrianglesProgram, "uEye");
 
 
@@ -135,9 +136,9 @@ let render = () => {
 
     camera.updateCamera(FOV, 1, cameraDistance);
     let acceleration = {
-        x: 10 * Math.sin(currentFrame * Math.PI / 180),
+        x: 0 * Math.sin(currentFrame * Math.PI / 180),
         y: -10,
-        z: 10 * Math.cos(currentFrame * Math.PI / 180)
+        z: 0 * Math.cos(currentFrame * Math.PI / 180)
     }
 
 
@@ -154,24 +155,33 @@ let render = () => {
 
 
     //Render particles
+    // gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
+    // gl.viewport(0, 0, canvas.height, canvas.height);
+    // gl.useProgram(renderParticlesProgram);
+    // webGL2.bindTexture(renderParticlesProgram.positionTexture, PBF.positionTexture, 0);
+    // webGL2.bindTexture(renderParticlesProgram.colorTexture, colorsTexture, 1);
+    // gl.uniform1f(renderParticlesProgram.scale, pbfResolution);
+    // gl.uniformMatrix4fv(renderParticlesProgram.cameraMatrix, false, camera.cameraTransformMatrix);
+    // gl.uniformMatrix4fv(renderParticlesProgram.perspectiveMatrix, false, camera.perspectiveMatrix);
+    // gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    // gl.enable(gl.DEPTH_TEST);
+    // gl.drawArrays(gl.POINTS, 0, PBF.totalParticles);
+    // gl.disable(gl.DEPTH_TEST);
+
+
+    //Render the potential
     gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
-    gl.viewport(0, 0, canvas.height, canvas.height);
-    gl.useProgram(renderParticlesProgram);
-    webGL2.bindTexture(renderParticlesProgram.positionTexture, PBF.positionTexture, 0);
-    webGL2.bindTexture(renderParticlesProgram.colorTexture, colorsTexture, 1);
-    gl.uniform1f(renderParticlesProgram.scale, pbfResolution);
-    gl.uniformMatrix4fv(renderParticlesProgram.cameraMatrix, false, camera.cameraTransformMatrix);
-    gl.uniformMatrix4fv(renderParticlesProgram.perspectiveMatrix, false, camera.perspectiveMatrix);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-    gl.enable(gl.DEPTH_TEST);
-    gl.drawArrays(gl.POINTS, 0, PBF.totalParticles);
-    gl.disable(gl.DEPTH_TEST);
-
-
-    // //Render the potential
-    // gl.viewport( canvas.height, 0, canvas.height, canvas.height);
+    gl.viewport(0, 0, canvas.height, canvas.height);
+    gl.useProgram(textureProgram);
+    webGL2.bindTexture(textureProgram.texture, Mesher.t3DExpanded, 0);
+    gl.uniform1f(textureProgram.forceAlpha, true);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    //
+    // gl.viewport(canvas.height, 0, canvas.height, canvas.height);
     // gl.useProgram(textureProgram);
     // webGL2.bindTexture(textureProgram.texture, Mesher.t3DExpanded, 0);
+    // gl.uniform1f(textureProgram.forceAlpha, true);
     // gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
 
@@ -183,7 +193,8 @@ let render = () => {
     gl.useProgram(phongTrianglesProgram);
     gl.viewport(canvas.height, 0, canvas.height, canvas.height);
     webGL2.bindTexture(phongTrianglesProgram.textureTriangles, Mesher.tTriangles, 0);
-    webGL2.bindTexture(phongTrianglesProgram.textureNormals, Mesher.tColors, 1);
+    webGL2.bindTexture(phongTrianglesProgram.textureNormals, Mesher.tNormals, 1);
+    webGL2.bindTexture(phongTrianglesProgram.textureColors, Mesher.tColors, 2);
     gl.uniformMatrix4fv(phongTrianglesProgram.cameraMatrix, false, camera.cameraTransformMatrix);
     gl.uniformMatrix4fv(phongTrianglesProgram.perspectiveMatrix, false, camera.perspectiveMatrix);
     gl.uniform3f(phongTrianglesProgram.cameraPosition, camera.position[0], camera.position[1], camera.position[2]);
