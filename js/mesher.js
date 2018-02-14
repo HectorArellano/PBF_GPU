@@ -230,7 +230,7 @@ let generateMesh = (positionTexture, totalParticles, colorTexture, particlesGrid
     gl.useProgram(setVoxelsProgram);
     webGL2.bindTexture(setVoxelsProgram.positionTexture, positionTexture, 0);
     webGL2.bindTexture(setVoxelsProgram.colorTexture, colorTexture, 1);
-    gl.uniform1f(setVoxelsProgram.phase, 1);
+    gl.uniform1f(setVoxelsProgram.phase, 0);
     gl.uniform1f(setVoxelsProgram.totalParticles, totalParticles);
     gl.uniform1f(setVoxelsProgram.particlesGridScale, particlesGridScale);
     gl.uniform3f(setVoxelsProgram.gridPartitioning, expandedTextureSize, resolution, expandedBuckets);
