@@ -70,14 +70,16 @@ for (let i = 0; i < pbfResolution; i++) {
             let y = j - pbfResolution * 0.5;
             let z = k - pbfResolution * 0.5;
 
-            if (x * x + y * y + z * z < radius * radius && j < pbfResolution * 0.4) {
+            let d = x * x + y * y + z * z;
+            if (d < radius * radius && j < pbfResolution * 0.4) {
                 particlesPosition.push(i, j, k, 1);
                 particlesVelocity.push(0, 0, 0, 0); //Velocity is zero for all the particles.
 
-                if(i < pbfResolution * 0.35) particlesColors.push(251, 244, 66, 0);
-                if(i > pbfResolution * 0.35 && i <= pbfResolution * 0.5) particlesColors.push(201, 41, 33, 0);
-                if(i > pbfResolution * 0.5 && i <= pbfResolution * 0.65) particlesColors.push(73, 128, 193, 0);
-                if(i > pbfResolution * 0.65) particlesColors.push(241, 46, 106, 0);
+                d = Math.sqrt(d) * 1.8;
+                if(d < pbfResolution * 0.35) particlesColors.push(251, 244, 66, 0);
+                if(d > pbfResolution * 0.35 && d <= pbfResolution * 0.5) particlesColors.push(201, 41, 33, 0);
+                if(d > pbfResolution * 0.5 && d <= pbfResolution * 0.65) particlesColors.push(73, 128, 193, 0);
+                if(d > pbfResolution * 0.65) particlesColors.push(241, 46, 106, 0);
             }
 
             y = j - pbfResolution * 0.8;
