@@ -29,11 +29,11 @@ let FOV = 30;
 
 //For the Position Based Fluids
 let updateSimulation = true;
-let deltaTime = 0.007;
-let constrainsIterations = 1;
-let pbfResolution = 128;
-let voxelTextureSize = 2048;
-let particlesTextureSize = 1024;
+let deltaTime = 0.005;
+let constrainsIterations = 4;
+let pbfResolution = 256;
+let voxelTextureSize = 4096;
+let particlesTextureSize = 2500;
 let particlesPosition = [];
 let particlesVelocity = [];
 let particlesColors = [];
@@ -52,13 +52,13 @@ let depthLevels = 64;
 
 let compactTextureSize = 2500;
 
-let particleSize = 5.;
-let blurSteps = 4;
+let particleSize = 3.;
+let blurSteps = 12;
 let range = 0.3;
 let maxCells = 3.5;
-let fastNormals = true;
+let fastNormals = false;
 let radius = pbfResolution * 0.39;
-let radius2 = pbfResolution * 0.1;
+let radius2 = pbfResolution * 0.08;
 
 //Generate the position and velocity
 for (let i = 0; i < pbfResolution; i++) {
@@ -70,25 +70,23 @@ for (let i = 0; i < pbfResolution; i++) {
             let y = j - pbfResolution * 0.5;
             let z = k - pbfResolution * 0.5;
 
-            if (x * x + y * y + z * z < radius * radius && k < pbfResolution * 0.4) {
+            if (x * x + y * y + z * z < radius * radius && j < pbfResolution * 0.4) {
                 particlesPosition.push(i, j, k, 1);
                 particlesVelocity.push(0, 0, 0, 0); //Velocity is zero for all the particles.
 
-                if(i < pbfResolution * 0.3) particlesColors.push(251, 244, 66, 0);
-                if(i > pbfResolution * 0.3 && i <= pbfResolution * 0.45) particlesColors.push(201, 41, 33, 0);
-                if(i > pbfResolution * 0.45 && i <= pbfResolution * 0.55) particlesColors.push(73, 128, 193, 0);
-                if(i > pbfResolution * 0.55 && i <= pbfResolution * 0.7) particlesColors.push(241, 46, 106, 0);
-                if(i > pbfResolution * 0.7) particlesColors.push(102, 95, 97, 0);
+                if(i < pbfResolution * 0.35) particlesColors.push(251, 244, 66, 0);
+                if(i > pbfResolution * 0.35 && i <= pbfResolution * 0.5) particlesColors.push(201, 41, 33, 0);
+                if(i > pbfResolution * 0.5 && i <= pbfResolution * 0.65) particlesColors.push(73, 128, 193, 0);
+                if(i > pbfResolution * 0.65) particlesColors.push(241, 46, 106, 0);
             }
 
-            // y = j - pbfResolution * 0.8;
-            //
-            // if (x * x + y * y + z * z < radius2 * radius2) {
-            //     particlesPosition.push(i, j, k, 1);
-            //     particlesVelocity.push(0, -45, 0, 0); //Velocity is zero for all the particles.
-            //     let u = i % 5;
-            //     particlesColors.push(255, 255, 255, 0);
-            // }
+            y = j - pbfResolution * 0.8;
+
+            if (x * x + y * y + z * z < radius2 * radius2) {
+                particlesPosition.push(i, j, k, 1);
+                particlesVelocity.push(0, -15, 0, 0); //Velocity is zero for all the particles.
+                particlesColors.push(255, 255, 255, 0);
+            }
         }
     }
 }

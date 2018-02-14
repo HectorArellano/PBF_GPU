@@ -40,7 +40,7 @@ void main(void) {
     ivec4 divider = ivec4(0);
     
     for (int i = 0; i <= 2 * uSteps; i += 1) {
-
+                
         ivec4 data = ivec4(texture(uDT, uv + (float(i) - float(uSteps))* uAxis));
 
         ivec4 d1 = intToRGBA(data.r);
@@ -52,39 +52,24 @@ void main(void) {
 
         blend += zero * m * potential;
         
-        // ivec4 zeroColor = ivec4(bvec4(length(vec3(d1.rgb)) > 1.0, length(vec3(d2.rgb)) > 1.0, length(vec3(d3.rgb)) > 1.0, length(vec3(d4.rgb)) > 1.0));
-        // zeroColor = ivec4(1);
-        
-        mixColor1 += m * d1.rgb;
-        mixColor2 += m * d2.rgb;
-        mixColor3 += m * d3.rgb;
-        mixColor4 += m * d4.rgb;
+        ivec4 zeroColor = m * ivec4(bvec4(length(vec3(d1.rgb)) > 10.0, length(vec3(d2.rgb)) > 10.0, length(vec3(d3.rgb)) > 10.0, length(vec3(d4.rgb)) > 10.0));
+        mixColor1 += zeroColor.x * d1.rgb;
+        mixColor2 += zeroColor.y * d2.rgb;
+        mixColor3 += zeroColor.z * d3.rgb;
+        mixColor4 += zeroColor.w * d4.rgb;
         
         m *= (uSteps - i) / (i + 1);
         sum += m;
         
-        // divider += m * zero * zeroColor;
+        divider += zeroColor;
     } 
     blend /= sum;
     
-    mixColor1 /= sum;    
-    mixColor2 /= sum;    
-    mixColor3 /= sum;    
-    mixColor4 /= sum;
-    
-    // ivec4 data = ivec4(texture(uDT, uv));
-    // ivec4 d1 = intToRGBA(data.r);
-    // ivec4 d2 = intToRGBA(data.g);
-    // ivec4 d3 = intToRGBA(data.b);
-    // ivec4 d4 = intToRGBA(data.a);
-    // ivec4 zeroColor = ivec4(bvec4(length(vec3(d1.rgb)) > 1.0, length(vec3(d2.rgb)) > 1.0, length(vec3(d3.rgb)) > 1.0, length(vec3(d4.rgb)) > 1.0));
-    
-    // zeroColor = ivec4(1);
-    // mixColor1 = zeroColor.r * d1.rgb + (1 - zeroColor.r) * mixColor1;
-    // mixColor2 = zeroColor.g * d2.rgb + (1 - zeroColor.g) * mixColor2;
-    // mixColor3 = zeroColor.b * d3.rgb + (1 - zeroColor.b) * mixColor3;
-    // mixColor4 = zeroColor.a * d4.rgb + (1 - zeroColor.a) * mixColor4;   
-    
+    mixColor1 /= max(divider.x, 1);    
+    mixColor2 /= max(divider.y, 1);    
+    mixColor3 /= max(divider.z, 1);    
+    mixColor4 /= max(divider.w, 1);
+        
     uvec4 compressedData = uvec4(0);
     
     compressedData.r = uint(zero) * rgbaToUInt(mixColor1.r, mixColor1.g, mixColor1.b, blend.r);

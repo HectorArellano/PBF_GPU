@@ -235,14 +235,13 @@ let generateMesh = (positionTexture, totalParticles, colorTexture, particlesGrid
     gl.uniform1f(setVoxelsProgram.particlesGridScale, particlesGridScale);
     gl.uniform3f(setVoxelsProgram.gridPartitioning, expandedTextureSize, resolution, expandedBuckets);
 
-    let potentialSize = 3;
     gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fb3DExpanded);
     gl.clear(gl.COLOR_BUFFER_BIT);
-    gl.uniform1f(setVoxelsProgram.particleSize, potentialSize);
-    gl.drawArrays(gl.POINTS, 0, potentialSize * totalParticles);
+    gl.uniform1f(setVoxelsProgram.particleSize, particlesSize);
+    gl.drawArrays(gl.POINTS, 0, particlesSize * totalParticles);
 
     //Place particles in the voxel space for the potential creation. This is for the color
-    let colorSize = 8;
+    let colorSize = 5;
     gl.uniform1f(setVoxelsProgram.particleSize, colorSize);
     gl.uniform1f(setVoxelsProgram.phase, 0.);
     gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fbHelper);

@@ -55,7 +55,7 @@ void main(void) {
         newPos3D = pos3D - (float(i) - n) * vec3(0., 1., 0.);
 
         depthLevel = floor(newPos3D.y / uDepth);  
-
+        
         st = u3D.x * (newPos3D.zx + u3D.y * vec2(mod(newPos3D.y, u3D.z), floor(newPos3D.y / u3D.z)) + vec2(0.5));
         st.y = fract(st.y);
 
@@ -70,55 +70,44 @@ void main(void) {
         bvec3 masks = bvec3(depthLevel < currentDepthLevel, depthLevel == currentDepthLevel, depthLevel > currentDepthLevel);
         ivec3 cases = ivec3(masks);
         blend += zero * m * (ivec4(0, potential.rgb) * cases.x + potential * cases.y + ivec4(potential.gba, 0) * cases.z);
+        
+        ivec4 zeroColor = 1 * ivec4(bvec4(length(vec3(d1.rgb)) > 10.0, length(vec3(d2.rgb)) > 10.0, length(vec3(d3.rgb)) > 10.0, length(vec3(d4.rgb)) > 10.0));
 
         if(masks.x) {
-            mixColor1 += ivec3(0);
-            mixColor2 += m * d1.rgb;
-            mixColor3 += m * d2.rgb;
-            mixColor4 += m * d3.rgb;
+            mixColor2 += zeroColor.x * d1.rgb;
+            mixColor3 += zeroColor.y * d2.rgb;
+            mixColor4 += zeroColor.z * d3.rgb;
+            
+            divider.yzw += zeroColor.xyz;
         }
 
         if(masks.y) {
-            mixColor1 += m * d1.rgb;
-            mixColor2 += m * d2.rgb;
-            mixColor3 += m * d3.rgb;
-            mixColor4 += m * d4.rgb;
+            mixColor1 += zeroColor.x * d1.rgb;
+            mixColor2 += zeroColor.y * d2.rgb;
+            mixColor3 += zeroColor.z * d3.rgb;
+            mixColor4 += zeroColor.w * d4.rgb;
+            
+            divider += zeroColor;
         }
         
         if(masks.z) {
-            mixColor1 += m * d2.rgb;
-            mixColor2 += m * d3.rgb;
-            mixColor3 += m * d4.rgb;
-            mixColor4 += ivec3(0);
+            mixColor1 += zeroColor.y * d2.rgb;
+            mixColor2 += zeroColor.z * d3.rgb;
+            mixColor3 += zeroColor.w * d4.rgb;
+            
+            divider.xyz += zeroColor.yzw;
         }
 
         m *= (uSteps - i) / (i + 1);
         sum += m;
 
-        divider += ivec4(m);
-
     }
 
     blend /= sum;
-    mixColor1 /= sum;    
-    mixColor2 /= sum;    
-    mixColor3 /= sum;    
-    mixColor4 /= sum;
-
-
-    // depthLevel = floor(pos3D.y / uDepth);  
-    // st = u3D.x * (pos3D.xz + u3D.y * vec2(mod(pos3D.y, u3D.z), floor(pos3D.y / u3D.z)) + vec2(0.5));
-    // st.y = fract(st.y);
-    // ivec4 data = ivec4(texture(uDataTexture, uv));
-    // ivec4 d1 = intToRGBA(data.r);
-    // ivec4 d2 = intToRGBA(data.g);
-    // ivec4 d3 = intToRGBA(data.b);
-    // ivec4 d4 = intToRGBA(data.a);
-    //
-    // mixColor1 = d1.rgb;
-    // mixColor2 = d2.rgb;
-    // mixColor3 = d3.rgb;
-    // mixColor4 = d4.rgb;
+    mixColor1 /= max(divider.x, 1);    
+    mixColor2 /= max(divider.y, 1);    
+    mixColor3 /= max(divider.z, 1);    
+    mixColor4 /= max(divider.w, 1);
     
     uvec4 compressedData = uvec4(0);
     
