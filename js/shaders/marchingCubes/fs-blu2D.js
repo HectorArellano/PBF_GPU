@@ -52,7 +52,8 @@ void main(void) {
 
         blend += zero * m * potential;
         
-        ivec4 zeroColor = m * ivec4(bvec4(length(vec3(d1.rgb)) > 10.0, length(vec3(d2.rgb)) > 10.0, length(vec3(d3.rgb)) > 10.0, length(vec3(d4.rgb)) > 10.0));
+        int d = int(pow(n + 1. - abs(n - float(i)), 4.5));
+        ivec4 zeroColor = d * ivec4(bvec4(length(vec3(d1.rgb)) > 10.0, length(vec3(d2.rgb)) > 10.0, length(vec3(d3.rgb)) > 10.0, length(vec3(d4.rgb)) > 10.0));
         mixColor1 += zeroColor.x * d1.rgb;
         mixColor2 += zeroColor.y * d2.rgb;
         mixColor3 += zeroColor.z * d3.rgb;

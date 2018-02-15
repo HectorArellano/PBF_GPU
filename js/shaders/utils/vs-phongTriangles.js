@@ -21,9 +21,14 @@ void main(void) {
     
     vec3 col = texture(uColors, uv).rgb;
     vec3 n = texture(uTN, uv).rgb;
-    // color =  col * ( abs(dot(n, vec3(0., 1., 0.)))   + abs(dot(n, vec3(1., 0., 0.))) + abs(dot(n, vec3(0., 0., 1.))) ) / 2.;
-    color = col;
-    gl_Position = uPMatrix * uCameraMatrix * vec4(texture(uTT, uv).rgb, 1.0);
+    
+    vec3 position = texture(uTT, uv).rgb;
+    vec3 lightPosition = vec3(0., 3., 0.);
+    vec3 lightVector = lightPosition - position;
+    lightVector = normalize(lightVector);
+    
+    color =  0.5 * col * abs(dot(lightVector, n)) + 0.5 * col;
+    gl_Position = uPMatrix * uCameraMatrix * vec4(position, 1.0);
 }
 
 `;

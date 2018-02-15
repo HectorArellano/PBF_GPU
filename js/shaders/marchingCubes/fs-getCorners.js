@@ -81,7 +81,6 @@ void main(void) {
         corner += ivec4(0, potential.rgb) * cases.x + potential * cases.y + ivec4(potential.gba, 0) * cases.z;
         
         if(masks.x) {
-            mixColor1 += ivec3(0);
             mixColor2 += d1.rgb;
             mixColor3 += d2.rgb;
             mixColor4 += d3.rgb;
@@ -98,7 +97,6 @@ void main(void) {
             mixColor1 += d2.rgb;
             mixColor2 += d3.rgb;
             mixColor3 += d4.rgb;
-            mixColor4 += ivec3(0);
         }
 
     }

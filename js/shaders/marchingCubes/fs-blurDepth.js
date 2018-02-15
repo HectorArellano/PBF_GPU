@@ -71,7 +71,8 @@ void main(void) {
         ivec3 cases = ivec3(masks);
         blend += zero * m * (ivec4(0, potential.rgb) * cases.x + potential * cases.y + ivec4(potential.gba, 0) * cases.z);
         
-        ivec4 zeroColor = 1 * ivec4(bvec4(length(vec3(d1.rgb)) > 10.0, length(vec3(d2.rgb)) > 10.0, length(vec3(d3.rgb)) > 10.0, length(vec3(d4.rgb)) > 10.0));
+        int d = int(pow(n + 1. - abs(n - float(i)), 4.5));
+        ivec4 zeroColor = d * ivec4(bvec4(length(vec3(d1.rgb)) > 10.0, length(vec3(d2.rgb)) > 10.0, length(vec3(d3.rgb)) > 10.0, length(vec3(d4.rgb)) > 10.0));
 
         if(masks.x) {
             mixColor2 += zeroColor.x * d1.rgb;

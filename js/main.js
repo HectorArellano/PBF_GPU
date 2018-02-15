@@ -29,11 +29,11 @@ let FOV = 30;
 
 //For the Position Based Fluids
 let updateSimulation = true;
-let deltaTime = 0.005;
+let deltaTime = 0.01;
 let constrainsIterations = 4;
-let pbfResolution = 256;
-let voxelTextureSize = 4096;
-let particlesTextureSize = 2500;
+let pbfResolution = 128;
+let voxelTextureSize = 2048;
+let particlesTextureSize = 2048;
 let particlesPosition = [];
 let particlesVelocity = [];
 let particlesColors = [];
@@ -52,9 +52,9 @@ let depthLevels = 64;
 
 let compactTextureSize = 2500;
 
-let particleSize = 3.;
-let blurSteps = 12;
-let range = 0.3;
+let particleSize = 5.;
+let blurSteps = 26;
+let range = 0.5;
 let maxCells = 3.5;
 let fastNormals = false;
 let radius = pbfResolution * 0.39;
@@ -86,8 +86,8 @@ for (let i = 0; i < pbfResolution; i++) {
 
             if (x * x + y * y + z * z < radius2 * radius2) {
                 particlesPosition.push(i, j, k, 1);
-                particlesVelocity.push(0, -15, 0, 0); //Velocity is zero for all the particles.
-                particlesColors.push(255, 255, 255, 0);
+                particlesVelocity.push(0, -25, 0, 0); //Velocity is zero for all the particles.
+                particlesColors.push(20, 240, 45, 0);
             }
         }
     }
@@ -136,9 +136,9 @@ let render = () => {
 
     camera.updateCamera(FOV, 1, cameraDistance);
     let acceleration = {
-        x: 0 * Math.sin(currentFrame * Math.PI / 180),
+        x: 10 * Math.sin(currentFrame * Math.PI / 180),
         y: -10,
-        z: 0 * Math.cos(currentFrame * Math.PI / 180)
+        z: 10 * Math.cos(currentFrame * Math.PI / 180)
     }
 
 

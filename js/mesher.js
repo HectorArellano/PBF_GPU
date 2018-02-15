@@ -241,7 +241,7 @@ let generateMesh = (positionTexture, totalParticles, colorTexture, particlesGrid
     gl.drawArrays(gl.POINTS, 0, particlesSize * totalParticles);
 
     //Place particles in the voxel space for the potential creation. This is for the color
-    let colorSize = 5;
+    let colorSize = 1;
     gl.uniform1f(setVoxelsProgram.particleSize, colorSize);
     gl.uniform1f(setVoxelsProgram.phase, 0.);
     gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fbHelper);
