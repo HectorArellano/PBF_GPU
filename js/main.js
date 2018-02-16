@@ -52,9 +52,9 @@ let depthLevels = 64;
 
 let compactTextureSize = 2500;
 
-let particleSize = 5.;
+let particleSize = 3.;
 let blurSteps = 26;
-let range = 0.5;
+let range = 0.35;
 let maxCells = 3.5;
 let fastNormals = false;
 let radius = pbfResolution * 0.39;

@@ -27,7 +27,7 @@ void main(void) {
 
     float border = 1.;
     
-    vec2 pos = floor(uv / u3D.x);
+    vec2 pos = floor(uv * u3D.x);
     vec3 pos3D = vec3(mod(pos.y, u3D.y), u3D.z * floor(pos.y / u3D.y) + floor(pos.x / u3D.y), mod(pos.x, u3D.y));
     vec3 newPos3D = vec3(0.);
     vec2 st = vec2(0.);
@@ -56,7 +56,7 @@ void main(void) {
 
         depthLevel = floor(newPos3D.y / uDepth);  
         
-        st = u3D.x * (newPos3D.zx + u3D.y * vec2(mod(newPos3D.y, u3D.z), floor(newPos3D.y / u3D.z)) + vec2(0.5));
+        st = (newPos3D.zx + u3D.y * vec2(mod(newPos3D.y, u3D.z), floor(newPos3D.y / u3D.z)) + vec2(0.5)) / u3D.x;
         st.y = fract(st.y);
 
         ivec4 data = ivec4(texture(uDataTexture, st));
@@ -71,8 +71,7 @@ void main(void) {
         ivec3 cases = ivec3(masks);
         blend += zero * m * (ivec4(0, potential.rgb) * cases.x + potential * cases.y + ivec4(potential.gba, 0) * cases.z);
         
-        int d = int(pow(n + 1. - abs(n - float(i)), 4.5));
-        ivec4 zeroColor = d * ivec4(bvec4(length(vec3(d1.rgb)) > 10.0, length(vec3(d2.rgb)) > 10.0, length(vec3(d3.rgb)) > 10.0, length(vec3(d4.rgb)) > 10.0));
+        ivec4 zeroColor = m * ivec4(bvec4(length(vec3(d1.rgb)) > 10.0, length(vec3(d2.rgb)) > 10.0, length(vec3(d3.rgb)) > 10.0, length(vec3(d4.rgb)) > 10.0));
 
         if(masks.x) {
             mixColor2 += zeroColor.x * d1.rgb;

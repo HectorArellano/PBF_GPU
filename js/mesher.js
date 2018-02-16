@@ -171,6 +171,7 @@ let init = (_resolution, _expandedTextureSize, _compressedTextureSize, _compactT
     blur2DProgram.axis =                            gl.getUniformLocation(blur2DProgram, "uAxis");
     blur2DProgram.steps =                           gl.getUniformLocation(blur2DProgram, "uSteps");
     blur2DProgram.gridPartitioning =                gl.getUniformLocation(blur2DProgram, "u3D");
+    blur2DProgram.depthLevels =                     gl.getUniformLocation(blur2DProgram, "uDepth");
 
 
     blurDepthProgram =                              webGL2.generateProgram(vsQuad, blurDepth);
@@ -268,7 +269,8 @@ let generateMesh = (positionTexture, totalParticles, colorTexture, particlesGrid
     let blurXY = (buffer, texture, axis) => {
         gl.uniform2fv(blur2DProgram.axis, axis);
         gl.uniform1i(blur2DProgram.steps, blurSteps);
-        gl.uniform3f(blur2DProgram.gridPartitioning, 1. / compressedTextureSize, resolution, compressedBuckets);
+        gl.uniform1f(blur2DProgram.depthLevels, depthLevels);
+        gl.uniform3f(blur2DProgram.gridPartitioning, compressedTextureSize, resolution, compressedBuckets);
         webGL2.bindTexture(blur2DProgram.dataTexture, texture, 0);
         gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, buffer);
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
@@ -285,7 +287,7 @@ let generateMesh = (positionTexture, totalParticles, colorTexture, particlesGrid
     webGL2.bindTexture(blurDepthProgram.dataTexture, tVoxels1, 0);
     gl.uniform1i(blurDepthProgram.steps, blurSteps);
     gl.uniform1f(blurDepthProgram.depthLevels, depthLevels);
-    gl.uniform3f(blurDepthProgram.gridPartitioning, 1. / compressedTextureSize, resolution, compressedBuckets);
+    gl.uniform3f(blurDepthProgram.gridPartitioning, compressedTextureSize, resolution, compressedBuckets);
     gl.clearBufferuiv(gl.COLOR, 0, new Uint32Array([0, 0, 0, 0]));
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 

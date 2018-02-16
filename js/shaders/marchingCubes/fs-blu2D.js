@@ -7,6 +7,7 @@ uniform usampler2D uDT;
 uniform vec2 uAxis;
 uniform int uSteps;
 uniform vec3 u3D;
+uniform float uDepth;
 
 in vec2 uv;
 out uvec4 colorData;
@@ -24,7 +25,7 @@ void main(void) {
     float border = 1.;
     
     //This avoids to spread information between the different buckets.
-    vec2 pos = floor(uv / u3D.x);
+    vec2 pos = floor(uv * u3D.x);
     bool bb = mod(pos.x, u3D.y) > border && mod(pos.y, u3D.y) > border && mod(pos.x, u3D.y) < u3D.y - 1. - border && mod(pos.y, u3D.y) < u3D.y - 1. - border;
     int zero = bb ? 1 : 0;
 
@@ -39,31 +40,45 @@ void main(void) {
     int m = 1;
     ivec4 divider = ivec4(0);
     
+    vec3 pos3D = vec3(mod(pos.y, u3D.y), u3D.z * floor(pos.y / u3D.y) + floor(pos.x / u3D.y), mod(pos.x, u3D.y));
+    vec2 st = vec2(0.);
+    float depthLevel = 0.;
+    float currentDepthLevel = floor(pos3D.y / uDepth);
+
+    
     for (int i = 0; i <= 2 * uSteps; i += 1) {
                 
-        ivec4 data = ivec4(texture(uDT, uv + (float(i) - float(uSteps))* uAxis));
-
-        ivec4 d1 = intToRGBA(data.r);
-        ivec4 d2 = intToRGBA(data.g);
-        ivec4 d3 = intToRGBA(data.b);
-        ivec4 d4 = intToRGBA(data.a);
-
-        ivec4 potential = ivec4(d1.a, d2.a, d3.a, d4.a);
-
-        blend += zero * m * potential;
+        st = uv + (float(i) - float(uSteps))* uAxis;
+        pos = floor(st * u3D.x);
+        pos3D = vec3(mod(pos.y, u3D.y), u3D.z * floor(pos.y / u3D.y) + floor(pos.x / u3D.y), mod(pos.x, u3D.y));
+        depthLevel = floor(pos3D.y / uDepth);
         
-        int d = int(pow(n + 1. - abs(n - float(i)), 4.5));
-        ivec4 zeroColor = d * ivec4(bvec4(length(vec3(d1.rgb)) > 10.0, length(vec3(d2.rgb)) > 10.0, length(vec3(d3.rgb)) > 10.0, length(vec3(d4.rgb)) > 10.0));
-        mixColor1 += zeroColor.x * d1.rgb;
-        mixColor2 += zeroColor.y * d2.rgb;
-        mixColor3 += zeroColor.z * d3.rgb;
-        mixColor4 += zeroColor.w * d4.rgb;
+        if(depthLevel == currentDepthLevel) {
         
-        m *= (uSteps - i) / (i + 1);
-        sum += m;
-        
-        divider += zeroColor;
+            ivec4 data = ivec4(texture(uDT, st));
+
+            ivec4 d1 = intToRGBA(data.r);
+            ivec4 d2 = intToRGBA(data.g);
+            ivec4 d3 = intToRGBA(data.b);
+            ivec4 d4 = intToRGBA(data.a);
+    
+            ivec4 potential = ivec4(d1.a, d2.a, d3.a, d4.a);
+    
+            blend += zero * m * potential;
+            
+            ivec4 zeroColor = m * ivec4(bvec4(length(vec3(d1.rgb)) > 10.0, length(vec3(d2.rgb)) > 10.0, length(vec3(d3.rgb)) > 10.0, length(vec3(d4.rgb)) > 10.0));
+            mixColor1 += zeroColor.x * d1.rgb;
+            mixColor2 += zeroColor.y * d2.rgb;
+            mixColor3 += zeroColor.z * d3.rgb;
+            mixColor4 += zeroColor.w * d4.rgb;
+            
+            m *= (uSteps - i) / (i + 1);
+            sum += m;
+            
+            divider += zeroColor;
+        }
     } 
+    
     blend /= sum;
     
     mixColor1 /= max(divider.x, 1);    
