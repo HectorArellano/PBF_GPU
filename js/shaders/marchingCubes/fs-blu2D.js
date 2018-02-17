@@ -1,6 +1,5 @@
 const blur2D = `#version 300 es
 precision highp float;
-
 precision highp usampler2D;
 
 uniform usampler2D uDT;
@@ -22,13 +21,6 @@ uint rgbaToUInt(int r, int g, int b, int p) {
 
 void main(void) {
 
-    float border = 1.;
-    
-    //This avoids to spread information between the different buckets.
-    vec2 pos = floor(uv * u3D.x);
-    bool bb = mod(pos.x, u3D.y) > border && mod(pos.y, u3D.y) > border && mod(pos.x, u3D.y) < u3D.y - 1. - border && mod(pos.y, u3D.y) < u3D.y - 1. - border;
-    int zero = bb ? 1 : 0;
-
     ivec3 mixColor1 = ivec3(0);
     ivec3 mixColor2 = ivec3(0);
     ivec3 mixColor3 = ivec3(0);
@@ -40,12 +32,12 @@ void main(void) {
     int m = 1;
     ivec4 divider = ivec4(0);
     
+    vec2 pos = floor(uv * u3D.x);
     vec3 pos3D = vec3(mod(pos.y, u3D.y), u3D.z * floor(pos.y / u3D.y) + floor(pos.x / u3D.y), mod(pos.x, u3D.y));
     vec2 st = vec2(0.);
     float depthLevel = 0.;
     float currentDepthLevel = floor(pos3D.y / uDepth);
 
-    
     for (int i = 0; i <= 2 * uSteps; i += 1) {
                 
         st = uv + (float(i) - float(uSteps))* uAxis;
@@ -64,9 +56,10 @@ void main(void) {
     
             ivec4 potential = ivec4(d1.a, d2.a, d3.a, d4.a);
     
-            blend += zero * m * potential;
+            blend +=  m * potential;
             
             ivec4 zeroColor = m * ivec4(bvec4(length(vec3(d1.rgb)) > 10.0, length(vec3(d2.rgb)) > 10.0, length(vec3(d3.rgb)) > 10.0, length(vec3(d4.rgb)) > 10.0));
+            
             mixColor1 += zeroColor.x * d1.rgb;
             mixColor2 += zeroColor.y * d2.rgb;
             mixColor3 += zeroColor.z * d3.rgb;
@@ -86,14 +79,11 @@ void main(void) {
     mixColor3 /= max(divider.z, 1);    
     mixColor4 /= max(divider.w, 1);
         
-    uvec4 compressedData = uvec4(0);
+    colorData.r = rgbaToUInt(mixColor1.r, mixColor1.g, mixColor1.b, blend.r);
+    colorData.g = rgbaToUInt(mixColor2.r, mixColor2.g, mixColor2.b, blend.g);
+    colorData.b = rgbaToUInt(mixColor3.r, mixColor3.g, mixColor3.b, blend.b);
+    colorData.a = rgbaToUInt(mixColor4.r, mixColor4.g, mixColor4.b, blend.a);
     
-    compressedData.r = uint(zero) * rgbaToUInt(mixColor1.r, mixColor1.g, mixColor1.b, blend.r);
-    compressedData.g = uint(zero) * rgbaToUInt(mixColor2.r, mixColor2.g, mixColor2.b, blend.g);
-    compressedData.b = uint(zero) * rgbaToUInt(mixColor3.r, mixColor3.g, mixColor3.b, blend.b);
-    compressedData.a = uint(zero) * rgbaToUInt(mixColor4.r, mixColor4.g, mixColor4.b, blend.a);
-
-    colorData = compressedData;
 }
 `;
 

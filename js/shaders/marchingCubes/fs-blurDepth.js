@@ -8,7 +8,6 @@ uniform usampler2D uDataTexture;
 uniform int uSteps;
 uniform float uDepth;
 
-
 in vec2 uv;
 out uvec4 colorData;
 
@@ -24,8 +23,6 @@ uint rgbaToUInt(int r, int g, int b, int p) {
 
     
 void main(void) {
-
-    float border = 1.;
     
     vec2 pos = floor(uv * u3D.x);
     vec3 pos3D = vec3(mod(pos.y, u3D.y), u3D.z * floor(pos.y / u3D.y) + floor(pos.x / u3D.y), mod(pos.x, u3D.y));
@@ -34,9 +31,6 @@ void main(void) {
     float depthLevel = 0.;
 
     float currentDepthLevel = floor(pos3D.y / uDepth);
-
-    bool bb = (mod(pos.x, u3D.y) > border && mod(pos.y, u3D.y) > border && mod(pos.x, u3D.y) < u3D.y - 1. - border && mod(pos.y, u3D.y) < u3D.y - 1. - border);
-    int zero = bb ? 1 : 0;
 
     ivec3 mixColor1 = ivec3(0);
     ivec3 mixColor2 = ivec3(0);
@@ -64,12 +58,12 @@ void main(void) {
         ivec4 d2 = intToRGBA(data.g);
         ivec4 d3 = intToRGBA(data.b);
         ivec4 d4 = intToRGBA(data.a);
-
         ivec4 potential = ivec4(d1.a, d2.a, d3.a, d4.a);
 
         bvec3 masks = bvec3(depthLevel < currentDepthLevel, depthLevel == currentDepthLevel, depthLevel > currentDepthLevel);
         ivec3 cases = ivec3(masks);
-        blend += zero * m * (ivec4(0, potential.rgb) * cases.x + potential * cases.y + ivec4(potential.gba, 0) * cases.z);
+        
+        blend += m * (ivec4(0, potential.rgb) * cases.x + potential * cases.y + ivec4(potential.gba, 0) * cases.z);
         
         ivec4 zeroColor = m * ivec4(bvec4(length(vec3(d1.rgb)) > 10.0, length(vec3(d2.rgb)) > 10.0, length(vec3(d3.rgb)) > 10.0, length(vec3(d4.rgb)) > 10.0));
 
@@ -77,7 +71,6 @@ void main(void) {
             mixColor2 += zeroColor.x * d1.rgb;
             mixColor3 += zeroColor.y * d2.rgb;
             mixColor4 += zeroColor.z * d3.rgb;
-            
             divider.yzw += zeroColor.xyz;
         }
 
@@ -86,15 +79,13 @@ void main(void) {
             mixColor2 += zeroColor.y * d2.rgb;
             mixColor3 += zeroColor.z * d3.rgb;
             mixColor4 += zeroColor.w * d4.rgb;
-            
             divider += zeroColor;
         }
         
         if(masks.z) {
             mixColor1 += zeroColor.y * d2.rgb;
             mixColor2 += zeroColor.z * d3.rgb;
-            mixColor3 += zeroColor.w * d4.rgb;
-            
+            mixColor3 += zeroColor.w * d4.rgb;            
             divider.xyz += zeroColor.yzw;
         }
 
@@ -108,15 +99,11 @@ void main(void) {
     mixColor2 /= max(divider.y, 1);    
     mixColor3 /= max(divider.z, 1);    
     mixColor4 /= max(divider.w, 1);
-    
-    uvec4 compressedData = uvec4(0);
-    
-    compressedData.r = uint(zero) * rgbaToUInt(mixColor1.r, mixColor1.g, mixColor1.b, blend.r);
-    compressedData.g = uint(zero) * rgbaToUInt(mixColor2.r, mixColor2.g, mixColor2.b, blend.g);
-    compressedData.b = uint(zero) * rgbaToUInt(mixColor3.r, mixColor3.g, mixColor3.b, blend.b);
-    compressedData.a = uint(zero) * rgbaToUInt(mixColor4.r, mixColor4.g, mixColor4.b, blend.a);
-
-    colorData = compressedData;
+        
+    colorData.r = rgbaToUInt(mixColor1.r, mixColor1.g, mixColor1.b, blend.r);
+    colorData.g = rgbaToUInt(mixColor2.r, mixColor2.g, mixColor2.b, blend.g);
+    colorData.b = rgbaToUInt(mixColor3.r, mixColor3.g, mixColor3.b, blend.b);
+    colorData.a = rgbaToUInt(mixColor4.r, mixColor4.g, mixColor4.b, blend.a);
 }
 `;
 
