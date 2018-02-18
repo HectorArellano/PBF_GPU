@@ -98,7 +98,7 @@ gl.bindTexture(gl.TEXTURE_2D, null);
 
 
 //Initiate the position based fluids solver
-PBF.init(particlesData.particlesPosition, particlesData.particlesVelocity, params.pbfResolution, params.voxelTextureSize, params.particlesTextureSize);
+PBF.init(particlesData.particlesPosition, particlesData.particlesVelocity, particlesData.particlesColors, params.pbfResolution, params.voxelTextureSize, params.particlesTextureSize);
 
 //Initiate the mesher generator
 Mesher.init(params.resolution, params.expandedTextureSize, params.compressedTextureSize, params.compactTextureSize, params.compressedBuckets, params.expandedBuckets, params.depthLevels);
@@ -110,6 +110,7 @@ let renderParticles = (_x, _u, _width, _height, buffer) => {
     gl.viewport(_x, _u, _width, _height);
     gl.useProgram(Programs.renderParticles);
     webGL2.bindTexture(Programs.renderParticles.positionTexture, PBF.positionTexture, 0);
+    webGL2.bindTexture(Programs.renderParticles.colorsTexture, PBF.colorsTexture, 1);
     gl.uniform1f(Programs.renderParticles.scale, params.pbfResolution);
     gl.uniformMatrix4fv(Programs.renderParticles.cameraMatrix, false, camera.cameraTransformMatrix);
     gl.uniformMatrix4fv(Programs.renderParticles.perspectiveMatrix, false, camera.perspectiveMatrix);

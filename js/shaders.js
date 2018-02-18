@@ -50,6 +50,7 @@ export function init() {
 
     renderParticles = webGL2.generateProgram(vsParticles, fsColor);
     renderParticles.positionTexture = gl.getUniformLocation(renderParticles, "uTexturePosition");
+    renderParticles.colorsTexture = gl.getUniformLocation(renderParticles, "uColors");
     renderParticles.cameraMatrix = gl.getUniformLocation(renderParticles, "uCameraMatrix");
     renderParticles.perspectiveMatrix = gl.getUniformLocation(renderParticles, "uPMatrix");
     renderParticles.scale = gl.getUniformLocation(renderParticles, "uScale");

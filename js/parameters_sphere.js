@@ -94,8 +94,9 @@ export class Params {
 
         let particlesPosition = [];
         let particlesVelocity = [];
+        let particlesColors = [];
         let radius = this.pbfResolution * 0.39;
-        //Generate the position and velocity
+
         for (let i = 0; i < this.pbfResolution; i++) {
             for (let j = 0; j < this.pbfResolution; j++) {
                 for (let k = 0; k < this.pbfResolution; k++) {
@@ -104,16 +105,23 @@ export class Params {
                     let x = i - this.pbfResolution * 0.5;
                     let y = j - this.pbfResolution * 0.5;
                     let z = k - this.pbfResolution * 0.5;
+                    let d = x * x + y * y + z * z;
 
-                    if (x * x + y * y + z * z < radius * radius && k < this.pbfResolution * 0.4) {
+                    if (d < radius * radius && j < this.pbfResolution * 0.4) {
                         particlesPosition.push(i, j, k, 1);
-                        particlesVelocity.push(0, 0, 0, 0);
+                        particlesVelocity.push(0, 0, 0, 0); //Velocity is zero for all the particles.
+
+                        d = Math.sqrt(d) * 1.8;
+                        if (d < this.pbfResolution * 0.35) particlesColors.push(251, 244, 66, 0);
+                        if (d > this.pbfResolution * 0.35 && d <= this.pbfResolution * 0.5) particlesColors.push(201, 41, 33, 0);
+                        if (d > this.pbfResolution * 0.5 && d <= this.pbfResolution * 0.65) particlesColors.push(73, 128, 193, 0);
+                        if (d > this.pbfResolution * 0.65) particlesColors.push(241, 46, 106, 0);
                     }
                 }
             }
         }
 
-        return {particlesPosition: particlesPosition, particlesVelocity: particlesVelocity}
+        return {particlesPosition: particlesPosition, particlesVelocity: particlesVelocity, particlesColors : particlesColors}
     }
 
 }

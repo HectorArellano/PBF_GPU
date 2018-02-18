@@ -34,6 +34,7 @@ let textureProgram,
 //Textures used.
 let positionTexture,
     velocityTexture,
+    colorsTexture,
     pbfTexture1,
     pbfTexture2,
     voxelsTexture;
@@ -69,7 +70,7 @@ let tensileDistance = tensileDistanceMultiplier * searchRadius;
 // This is used to initiate the simulator
 //=======================================================================================================
 
-let init = (particlesPosition, particlesVelocity, _bucketSize, _voxelsTextureSize, _particlesTextureSize) => {
+let init = (particlesPosition, particlesVelocity, particlesColors, _bucketSize, _voxelsTextureSize, _particlesTextureSize) => {
 
     bucketSize = _bucketSize;
     voxelsTextureSize = _voxelsTextureSize;
@@ -81,6 +82,7 @@ let init = (particlesPosition, particlesVelocity, _bucketSize, _voxelsTextureSiz
     for(let i = totalParticles; i < particlesTextureSize * particlesTextureSize; i ++) {
         particlesPosition.push(0, 0, 0, 0);
         particlesVelocity.push(0, 0, 0, 0);
+        particlesColors.push(0, 0, 0, 0);
     }
 
     console.log("===============================");
@@ -143,6 +145,7 @@ let init = (particlesPosition, particlesVelocity, _bucketSize, _voxelsTextureSiz
     //Required textures for simulations
     positionTexture = webGL2.createTexture2D(particlesTextureSize, particlesTextureSize, gl.RGBA32F, gl.RGBA, gl.NEAREST, gl.NEAREST, gl.FLOAT, new Float32Array(particlesPosition));
     velocityTexture = webGL2.createTexture2D(particlesTextureSize, particlesTextureSize, gl.RGBA32F, gl.RGBA, gl.NEAREST, gl.NEAREST, gl.FLOAT, new Float32Array(particlesVelocity));
+    colorsTexture   = webGL2.createTexture2D(particlesTextureSize, particlesTextureSize, gl.RGBA32F, gl.RGBA, gl.NEAREST, gl.NEAREST, gl.FLOAT, new Float32Array(particlesColors));
     pbfTexture1     = webGL2.createTexture2D(particlesTextureSize, particlesTextureSize, gl.RGBA32F, gl.RGBA, gl.NEAREST, gl.NEAREST, gl.FLOAT, null);
     pbfTexture2     = webGL2.createTexture2D(particlesTextureSize, particlesTextureSize, gl.RGBA32F, gl.RGBA, gl.NEAREST, gl.NEAREST, gl.FLOAT, null);
     voxelsTexture   = webGL2.createTexture2D(voxelsTextureSize, voxelsTextureSize, gl.RGBA32F, gl.RGBA, gl.NEAREST, gl.NEAREST, gl.FLOAT, null);
@@ -286,5 +289,6 @@ export {
     totalParticles,
     positionTexture,
     velocityTexture,
+    colorsTexture,
     voxelsTexture
 }
