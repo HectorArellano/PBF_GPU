@@ -6,8 +6,10 @@ const fsRaytracer = `#version 300 es
  uniform sampler2D uPot;
  uniform sampler2D uTT;
  uniform sampler2D uTN;
+ uniform sampler2D uTC;
  uniform sampler2D uScreenPositions;
  uniform sampler2D uScreenNormals;
+ uniform sampler2D uScreenColors;
  uniform sampler2D uFloor;
  uniform sampler2D uLowRes;
  uniform int uMaxSteps;
@@ -377,6 +379,8 @@ float sphereIntersect(vec3 rayOrigin, vec3 rayDirection, vec3 center, float radi
 
     vec3 position = data.rgb;
     vec3 normal = texture(uScreenNormals, uv).rgb;
+    
+    vec3 screenColor = texture(uScreenColors, uv).rgb;
 
     vec3 eye = normalize(position - uEye);
     vec3 initialPos = position;
@@ -384,8 +388,8 @@ float sphereIntersect(vec3 rayOrigin, vec3 rayDirection, vec3 center, float radi
     vec3 lightVector = uLightData.rgb - position;
     vec3 lightDirection = normalize(lightVector);
 
-    vec3 color = lightShade(uMaterialColor, -eye, normal, lightDirection);
-    color *= uLightData.a / pow(length(lightVector), 2.);
+    vec3 color = lightShade(screenColor, -eye, normal, lightDirection);
+    //color *= uLightData.a / pow(length(lightVector), 2.);
 
     float fresnel = Fresnel(-eye, normal, 1., uRefract);
     float Kr = fresnel;

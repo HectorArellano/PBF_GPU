@@ -38,7 +38,7 @@ void main(void) {
         
     //Set the value of the fragment based on the depth and the corresponding channel.
     colorData = d1 * mask.x + d2 * mask.y + d3 * mask.z + d4 * mask.w;    
-    colorData = colorData.aaaa;
+    colorData = colorData.argb;
 
 }
 

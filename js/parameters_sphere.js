@@ -47,8 +47,8 @@ export class Params {
         //Material parameters (dielectric)
         this.refraction = 1.3;
         this.maxIterations = 600.;
-        this.refractions = 8;
-        this.reflections = 3;
+        this.refractions = 0;
+        this.reflections = 1;
         this.maxStepsPerBounce = 800;
         this.absorptionColor = [179, 184, 195];
         this.dispersion = 0.0;
@@ -56,7 +56,7 @@ export class Params {
         this.distanceAbsorptionScale = 4;
         this.materialColor = [255, 255, 255];
         this.kS = 0.;
-        this.kD = 0.;
+        this.kD = 1.;
         this.kA = 0.;
         this.shinny = 60;
         this.dielectricLOD = 3;
@@ -68,7 +68,7 @@ export class Params {
         this.lightIntensity = 2.5;
         this.lightDistance = 3;
         this.backgroundColor = 0.7;
-        this.lightColor = [183, 211, 217];
+        this.lightColor = [255, 255, 255];
         this.calculateShadows = true;
         this.shadowIntensity = 0.7;
         this.blurShadowsRadius = 12;
@@ -81,7 +81,7 @@ export class Params {
         this.photonSteps = 1;
         this.radianceRadius = 2;
         this.radiancePower = 0.25;
-        this.calculateCaustics = true;
+        this.calculateCaustics = false;
         this.causticsSize = 2000;
         this.totalPhotons = this.causticsSize * this.causticsSize;
         this.causticSteps = 0;
@@ -107,15 +107,14 @@ export class Params {
                     let z = k - this.pbfResolution * 0.5;
                     let d = x * x + y * y + z * z;
 
-                    if (d < radius * radius && j < this.pbfResolution * 0.4) {
+                    if (d < radius * radius && k < this.pbfResolution * 0.4) {
                         particlesPosition.push(i, j, k, 1);
                         particlesVelocity.push(0, 0, 0, 0); //Velocity is zero for all the particles.
 
-                        d = Math.sqrt(d) * 1.8;
-                        if (d < this.pbfResolution * 0.35) particlesColors.push(251, 244, 66, 0);
-                        if (d > this.pbfResolution * 0.35 && d <= this.pbfResolution * 0.5) particlesColors.push(201, 41, 33, 0);
-                        if (d > this.pbfResolution * 0.5 && d <= this.pbfResolution * 0.65) particlesColors.push(73, 128, 193, 0);
-                        if (d > this.pbfResolution * 0.65) particlesColors.push(241, 46, 106, 0);
+                        if (i < this.pbfResolution * 0.35) particlesColors.push(251, 244, 66, 0);
+                        if (i > this.pbfResolution * 0.35 && i <= this.pbfResolution * 0.5) particlesColors.push(201, 41, 33, 0);
+                        if (i > this.pbfResolution * 0.5 && i <= this.pbfResolution * 0.65) particlesColors.push(73, 128, 193, 0);
+                        if (i > this.pbfResolution * 0.65) particlesColors.push(241, 46, 106, 0);
                     }
                 }
             }
@@ -123,7 +122,6 @@ export class Params {
 
         return {particlesPosition: particlesPosition, particlesVelocity: particlesVelocity, particlesColors : particlesColors}
     }
-
 }
 
 

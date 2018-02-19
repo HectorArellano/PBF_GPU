@@ -7,9 +7,11 @@ uniform mat4 uCameraMatrix;
 uniform mat4 uPMatrix;
 uniform highp sampler2D uTT;
 uniform highp sampler2D uTN;
+uniform highp sampler2D uTC;
 
 out vec3 position;
 out vec3 normal;
+out vec3 color;
 
 void main(void) {
 
@@ -19,6 +21,7 @@ void main(void) {
     
     position = texture(uTT, uv).rgb;
     normal = texture(uTN, uv).rgb;
+    color = texture(uTC, uv).rgb;
     
     gl_Position = uPMatrix * uCameraMatrix * vec4(position, 1.0);
     

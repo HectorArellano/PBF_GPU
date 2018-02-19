@@ -50,6 +50,7 @@ let tVoxelsHigh = webGL2.createTexture2D(params.expandedTextureSize, params.expa
 let tVoxelsLow = webGL2.createTexture2D(params.lowResolutionTextureSize, params.lowResolutionTextureSize, gl.RGBA32F, gl.RGBA, gl.NEAREST, gl.NEAREST, gl.FLOAT);
 let tScreenPositions = webGL2.createTexture2D(params.sceneSize, params.sceneSize, gl.RGBA32F, gl.RGBA, gl.NEAREST, gl.NEAREST, gl.FLOAT);
 let tScreenNormals = webGL2.createTexture2D(params.sceneSize, params.sceneSize, gl.RGBA32F, gl.RGBA, gl.NEAREST, gl.NEAREST, gl.FLOAT);
+let tScreenColors = webGL2.createTexture2D(params.sceneSize, params.sceneSize, gl.RGBA32F, gl.RGBA, gl.NEAREST, gl.NEAREST, gl.FLOAT);
 let tFloorLines = webGL2.createTexture2D(params.floorTextureSize, params.floorTextureSize, gl.RGBA8, gl.RGBA, gl.LINEAR, gl.LINEAR_MIPMAP_LINEAR, gl.UNSIGNED_BYTE, null, gl.REPEAT);
 let tShadows = webGL2.createTexture2D(params.sceneSize, params.sceneSize, gl.RGBA16F, gl.RGBA, gl.LINEAR, gl.LINEAR, gl.HALF_FLOAT);
 let tShadows2 = webGL2.createTexture2D(params.sceneSize, params.sceneSize, gl.RGBA16F, gl.RGBA, gl.LINEAR, gl.LINEAR, gl.HALF_FLOAT);
@@ -67,7 +68,7 @@ let tScene2 = webGL2.createTexture2D(params.sceneSize, params.sceneSize, gl.RGBA
 //Framebuffers
 let fbVoxelsHigh = webGL2.createDrawFramebuffer(tVoxelsHigh, true);
 let fbVoxelsLow = webGL2.createDrawFramebuffer(tVoxelsLow);
-let fbDeferred = webGL2.createDrawFramebuffer([tScreenPositions, tScreenNormals], true);
+let fbDeferred = webGL2.createDrawFramebuffer([tScreenPositions, tScreenNormals, tScreenColors], true);
 let fbFloorLines = webGL2.createDrawFramebuffer(tFloorLines);
 let fbShadowsData = webGL2.createDrawFramebuffer([tShadows, tShadows2]);
 let fbShadows = webGL2.createDrawFramebuffer(tShadows);
@@ -230,6 +231,7 @@ let render = () => {
         gl.viewport(0, 0, params.sceneSize, params.sceneSize);
         webGL2.bindTexture(Programs.deferred.textureTriangles, Mesher.tTriangles, 0);
         webGL2.bindTexture(Programs.deferred.textureNormals, Mesher.tNormals, 1);
+        webGL2.bindTexture(Programs.deferred.textureColors, Mesher.tColors, 2);
         gl.uniformMatrix4fv(Programs.deferred.cameraMatrix, false, camera.cameraTransformMatrix);
         gl.uniformMatrix4fv(Programs.deferred.perspectiveMatrix, false, camera.perspectiveMatrix);
         gl.enable(gl.DEPTH_TEST);
@@ -368,15 +370,23 @@ let render = () => {
         gl.clear(gl.COLOR_BUFFER_BIT);
         gl.viewport(0, 0, params.sceneSize, params.sceneSize);
         gl.useProgram(Programs.raytracer);
+
         webGL2.bindTexture(Programs.raytracer.textureTriangles, Mesher.tTriangles, 0);
         webGL2.bindTexture(Programs.raytracer.textureNormals, Mesher.tNormals, 1);
-        webGL2.bindTexture(Programs.raytracer.potentialTexture, tVoxelsHigh, 2);
-        webGL2.bindTexture(Programs.raytracer.lowResPotential, tVoxelsLow, 3);
-        webGL2.bindTexture(Programs.raytracer.positions, tScreenPositions, 4);
-        webGL2.bindTexture(Programs.raytracer.normals, tScreenNormals, 5);
-        webGL2.bindTexture(Programs.raytracer.floorTexture, tFloorLines, 6);
-        webGL2.bindTexture(Programs.raytracer.shadowTexture, tShadows, 7);
-        webGL2.bindTexture(Programs.raytracer.radianceTexture, tRadiance2, 8);
+
+        webGL2.bindTexture(Programs.raytracer.textureColors, Mesher.tColors, 2);
+
+        webGL2.bindTexture(Programs.raytracer.potentialTexture, tVoxelsHigh, 3);
+        webGL2.bindTexture(Programs.raytracer.lowResPotential, tVoxelsLow, 4);
+        webGL2.bindTexture(Programs.raytracer.positions, tScreenPositions, 5);
+        webGL2.bindTexture(Programs.raytracer.normals, tScreenNormals, 6);
+
+        webGL2.bindTexture(Programs.raytracer.colors, tScreenColors, 7);
+
+        webGL2.bindTexture(Programs.raytracer.floorTexture, tFloorLines, 8);
+        webGL2.bindTexture(Programs.raytracer.shadowTexture, tShadows, 9);
+        webGL2.bindTexture(Programs.raytracer.radianceTexture, tRadiance2, 10);
+
         gl.uniform3f(Programs.raytracer.eyeVector, camera.position[0], camera.position[1], camera.position[2]);
         gl.uniform1f(Programs.raytracer.refract, params.refraction);
         gl.uniform1f(Programs.raytracer.dielectricLOD, params.dielectricLOD);

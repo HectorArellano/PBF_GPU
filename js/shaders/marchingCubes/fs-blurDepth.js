@@ -46,7 +46,7 @@ void main(void) {
 
     for (int i = 0; i <= 2 * uSteps; i += 1) {
 
-        newPos3D = pos3D - (float(i) - n) * vec3(0., 1., 0.);
+        newPos3D = pos3D - (float(i) - 0.5 * n) * vec3(0., 1., 0.);
 
         depthLevel = floor(newPos3D.y / uDepth);  
         
@@ -65,7 +65,7 @@ void main(void) {
         
         blend += m * (ivec4(0, potential.rgb) * cases.x + potential * cases.y + ivec4(potential.gba, 0) * cases.z);
         
-        ivec4 zeroColor = m * ivec4(bvec4(length(vec3(d1.rgb)) > 10.0, length(vec3(d2.rgb)) > 10.0, length(vec3(d3.rgb)) > 10.0, length(vec3(d4.rgb)) > 10.0));
+        ivec4 zeroColor = ivec4(bvec4(length(vec3(d1.rgb)) > 10.0, length(vec3(d2.rgb)) > 10.0, length(vec3(d3.rgb)) > 10.0, length(vec3(d4.rgb)) > 10.0));
 
         if(masks.x) {
             mixColor2 += zeroColor.x * d1.rgb;

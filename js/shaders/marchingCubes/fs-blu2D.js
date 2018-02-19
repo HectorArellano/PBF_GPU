@@ -40,7 +40,7 @@ void main(void) {
 
     for (int i = 0; i <= 2 * uSteps; i += 1) {
                 
-        st = uv + (float(i) - float(uSteps))* uAxis;
+        st = uv + (float(i) - 0.5 * float(uSteps))* uAxis;
         pos = floor(st * u3D.x);
         pos3D = vec3(mod(pos.y, u3D.y), u3D.z * floor(pos.y / u3D.y) + floor(pos.x / u3D.y), mod(pos.x, u3D.y));
         depthLevel = floor(pos3D.y / uDepth);

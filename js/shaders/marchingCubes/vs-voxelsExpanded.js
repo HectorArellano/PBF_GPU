@@ -27,7 +27,7 @@ void main() {
     gP = 2. * gP - vec2(1.);
 
     //The 255 alpha value represents the maximum potential value, it could be modulated with the density
-    colorData = vec4(texture(uColors, index2D).rgb, 1.);
+    colorData = vec4(texture(uColors, index2D).rgb / 255., 1.);
 
     gl_PointSize = uSize;
     

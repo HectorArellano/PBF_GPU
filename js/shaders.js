@@ -77,6 +77,7 @@ export function init() {
     deferred.perspectiveMatrix = gl.getUniformLocation(deferred, "uPMatrix");
     deferred.textureTriangles = gl.getUniformLocation(deferred, "uTT");
     deferred.textureNormals = gl.getUniformLocation(deferred, "uTN");
+    deferred.textureColors = gl.getUniformLocation(deferred, "uTC");
 
 
     floor = webGL2.generateProgram(vsQuad, fsFloorShader);
@@ -151,6 +152,7 @@ export function init() {
     raytracer = webGL2.generateProgram(vsQuad, fsRaytracer);
     raytracer.textureTriangles = gl.getUniformLocation(raytracer, "uTT");
     raytracer.textureNormals = gl.getUniformLocation(raytracer, "uTN");
+    raytracer.textureColors = gl.getUniformLocation(raytracer, "uTC");
     raytracer.eyeVector = gl.getUniformLocation(raytracer, "uEye");
     raytracer.iterations = gl.getUniformLocation(raytracer, "uMaxSteps");
     raytracer.maxStepsPerBounce = gl.getUniformLocation(raytracer, "uMaxBounceSteps");
@@ -175,6 +177,7 @@ export function init() {
     raytracer.voxelLowData = gl.getUniformLocation(raytracer, "uVoxelLow");
     raytracer.positions = gl.getUniformLocation(raytracer, "uScreenPositions");
     raytracer.normals = gl.getUniformLocation(raytracer, "uScreenNormals");
+    raytracer.colors = gl.getUniformLocation(raytracer, "uScreenColors");
     raytracer.floorTexture = gl.getUniformLocation(raytracer, "uFloor");
     raytracer.lightColor = gl.getUniformLocation(raytracer, "uLightColor");
     raytracer.materialColor = gl.getUniformLocation(raytracer, "uMaterialColor");

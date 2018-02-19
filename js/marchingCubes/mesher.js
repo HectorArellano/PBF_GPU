@@ -39,6 +39,7 @@ let tVoxels1,
     tVoxels2,
     tTriangles,
     tNormals,
+    tColors,
     tVoxelsOffsets,
     tHelper,
     t3DExpanded,
@@ -106,6 +107,7 @@ let init = (_resolution, _expandedTextureSize, _compressedTextureSize, _compactT
     tVoxels2 =                      webGL2.createTexture2D(compressedTextureSize, compressedTextureSize,               gl.RGBA32UI, gl.RGBA_INTEGER, gl.NEAREST, gl.NEAREST, gl.UNSIGNED_INT);
     tTriangles =                    webGL2.createTexture2D(compactTextureSize, compactTextureSize,                     gl.RGBA32F, gl.RGBA, gl.NEAREST, gl.NEAREST, gl.FLOAT);
     tNormals =                      webGL2.createTexture2D(compactTextureSize, compactTextureSize,                     gl.RGBA32F, gl.RGBA, gl.NEAREST, gl.NEAREST, gl.FLOAT);
+    tColors =                       webGL2.createTexture2D(compactTextureSize, compactTextureSize,                     gl.RGBA32F, gl.RGBA, gl.NEAREST, gl.NEAREST, gl.FLOAT);
     tVoxelsOffsets =                webGL2.createTexture2D(compactTextureSize, compactTextureSize,                     gl.RGBA32F, gl.RGBA, gl.NEAREST, gl.NEAREST, gl.FLOAT);
     tHelper =                       webGL2.createTexture2D(expandedTextureSize, expandedTextureSize,                   gl.RGBA32F, gl.RGBA, gl.NEAREST, gl.NEAREST, gl.FLOAT);
     t3DExpanded =                   webGL2.createTexture2D(expandedTextureSize, expandedTextureSize,                   gl.RGBA32F, gl.RGBA, gl.NEAREST, gl.NEAREST, gl.FLOAT);
@@ -121,7 +123,7 @@ let init = (_resolution, _expandedTextureSize, _compressedTextureSize, _compactT
     fbAmountOfTrianglesPerIndex =  webGL2.createDrawFramebuffer(tAmountOfTrianglesPerIndex);
     fbHelper =                     webGL2.createDrawFramebuffer(tHelper);
     fbMarchingCase =               webGL2.createDrawFramebuffer(tMarchingCase);
-    fbTriangles =                  webGL2.createDrawFramebuffer([tTriangles, tNormals, tVoxelsOffsets]);
+    fbTriangles =                  webGL2.createDrawFramebuffer([tTriangles, tNormals, tVoxelsOffsets, tColors]);
 
     tLevels = [];
     fbPyramid = [];
@@ -367,7 +369,9 @@ export {init,
     generateMesh,
     tTriangles,
     tNormals,
+    tColors,
     tVoxelsOffsets,
     tLevels,
-    fbPyramid
+    fbPyramid,
+    t3DExpanded
 }
