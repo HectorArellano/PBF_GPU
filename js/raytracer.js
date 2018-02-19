@@ -193,7 +193,7 @@ let render = () => {
     }
 
     //Generate the mesh from the simulation particles
-    if(params.updateMesh) Mesher.generateMesh(PBF.positionTexture, PBF.totalParticles, params.pbfResolution, params.particleSize, params.blurSteps, params.range, params.maxCells, params.fastNormals);
+    if(params.updateMesh) Mesher.generateMesh(PBF.positionTexture, PBF.colorsTexture, PBF.totalParticles, params.pbfResolution, params.particleSize, params.blurSteps, params.range, params.maxCells, params.fastNormals);
 
 
     //Ray tracing section
