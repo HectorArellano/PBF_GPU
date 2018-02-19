@@ -67,7 +67,7 @@ const fsRaytracer = `#version 300 es
 
      float specular = pow(max(dot(normalize(reflect(light, norm)), -eye), 0.), uShade.w);
      float diffuse = max(dot(light, norm), 0.);
-     return uShade.x * specular * vec3(1.) + uShade.y * diffuse * matColor * uLightColor;
+     return uShade.x * specular * vec3(1.) + uShade.y * diffuse * matColor * uLightColor + uShade.w * matColor;
 ;
  }
 
