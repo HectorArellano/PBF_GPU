@@ -20,24 +20,6 @@ float h2;
 
 out vec4 colorData;
 
-void addToSum(in vec3 particlePosition, in float neighborIndex, in float lambdaPressure, inout vec3 deltaPosition) {
-
-    vec2 index = vec2(mod(neighborIndex, texturePositionSize) + 0.5, floor(neighborIndex / texturePositionSize) + 0.5) / texturePositionSize;
-    vec3 distance = particlePosition - texture(uTexturePosition, index).rgb;
-    float r = length(distance);
-
-    if(r > 0. && r < uSearchRadius) {
-
-        float n_lambdaPressure = texture(uConstrains, index).r;
-        float partial = uSearchRadius - r;
-
-        //For the lambda Correction
-        float lambdaCorrection = -uTensileK * pow((h2 - r * r) / (h2 - uTensileDistance * uTensileDistance), 3. * uTensilePower);
-
-        deltaPosition += (lambdaPressure + n_lambdaPressure + lambdaCorrection) * partial * partial * normalize(distance);
-    }
-}
-
 void main() {
 
     texturePositionSize = float(textureSize(uTexturePosition, 0).x);
@@ -91,10 +73,22 @@ void main() {
         //vec2 voxelsIndex = (vec2(mod(gridIndex, uBucketData.x), floor(gridIndex / uBucketData.x)) + vec2(0.5)) / uBucketData.x;
         vec4 neighbors = texture(uNeighbors, voxelsIndex);
 
-        if(neighbors.r > 0.) addToSum(particlePosition, neighbors.r, lambdaPressure, deltaPosition);
-        if(neighbors.g > 0.) addToSum(particlePosition, neighbors.g, lambdaPressure, deltaPosition);
-        if(neighbors.b > 0.) addToSum(particlePosition, neighbors.b, lambdaPressure, deltaPosition);
-        if(neighbors.a > 0.) addToSum(particlePosition, neighbors.a, lambdaPressure, deltaPosition);
+        if(neighbors.a > 0.) {
+
+            vec3 distance = particlePosition - neighbors.rgb / neighbors.a;
+            float r = length(distance);
+
+            if(r > 0. && r < uSearchRadius) {
+
+                float n_lambdaPressure = texture(uConstrains, index).r;
+                float partial = uSearchRadius - r;
+
+                //For the lambda Correction
+                float lambdaCorrection = -uTensileK * pow((h2 - r * r) / (h2 - uTensileDistance * uTensileDistance), 3. * uTensilePower);
+
+                deltaPosition += (lambdaPressure + n_lambdaPressure + lambdaCorrection) * partial * partial * normalize(distance);
+            }
+        }
     }
 
     vec3 endPosition = particlePosition + (uGradientKernelConstant / uRestDensity) * deltaPosition;

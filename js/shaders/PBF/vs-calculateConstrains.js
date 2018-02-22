@@ -17,24 +17,6 @@ vec3 offsets[27];
 float texturePositionSize;
 float h2;
 
-void addToSum(in vec3 particlePosition, in float neighborIndex, inout float density, inout float sum_k_grad_Ci, inout vec3 grad_pi_Ci) {
-
-    vec3 distance = particlePosition - texture(uTexturePosition, vec2(mod(neighborIndex, texturePositionSize) + 0.5, floor(neighborIndex / texturePositionSize) + 0.5) / texturePositionSize).rgb;
-    float r = length(distance);
-
-    if(r < uSearchRadius) {
-
-        float partial = h2 - dot(distance, distance);
-        density += uKernelConstant * partial * partial * partial;
-
-        if(r > 0.) {
-            partial = uSearchRadius - r;
-            vec3 grad_pk_Ci = uGradientKernelConstant * partial * partial * normalize(distance) / uRestDensity;
-            sum_k_grad_Ci += dot(grad_pk_Ci, grad_pk_Ci);
-            grad_pi_Ci += grad_pk_Ci;
-        }
-    }
-}
 
 void main() {
 
@@ -93,10 +75,23 @@ void main() {
         //vec2 voxelsIndex = (vec2(mod(gridIndex, uBucketData.x), floor(gridIndex / uBucketData.x)) + vec2(0.5)) / uBucketData.x;
         vec4 neighbors = texture(uNeighbors, voxelsIndex);
 
-        if(neighbors.r > 0.) addToSum(particlePosition, neighbors.r, density, sum_k_grad_Ci, grad_pi_Ci);
-        if(neighbors.g > 0.) addToSum(particlePosition, neighbors.g, density, sum_k_grad_Ci, grad_pi_Ci);
-        if(neighbors.b > 0.) addToSum(particlePosition, neighbors.b, density, sum_k_grad_Ci, grad_pi_Ci);
-        if(neighbors.a > 0.) addToSum(particlePosition, neighbors.a, density, sum_k_grad_Ci, grad_pi_Ci);
+        if(neighbors.a > 0.) {
+            vec3 distance = particlePosition - neighbors.rgb / neighbors.a;
+            float r = length(distance);
+
+            if(r < uSearchRadius) {
+
+                float partial = h2 - dot(distance, distance);
+                density += neighbors.a * uKernelConstant * partial * partial * partial;
+
+                if(r > 0.) {
+                    partial = uSearchRadius - r;
+                    vec3 grad_pk_Ci = neighbors.a * uGradientKernelConstant * partial * partial * normalize(distance) / uRestDensity;
+                    sum_k_grad_Ci += dot(grad_pk_Ci, grad_pk_Ci);
+                    grad_pi_Ci += grad_pk_Ci;
+                }
+            }
+        }
     }
 
     densityConstrain = density / uRestDensity - 1.;

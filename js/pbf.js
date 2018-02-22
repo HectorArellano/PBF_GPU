@@ -4,6 +4,7 @@ import {searchNeighbords}       from './utils/neightborhoodSearch.js';
 
 //Shaders
 import {predictPositions}       from './shaders/PBF/vs-applyForces.js';
+import {vsMedian}               from './shaders/PBF/vs-median.js';
 import {integrateVelocity}      from './shaders/PBF/vs-integrateVelocity.js';
 import {calculateConstrains}    from './shaders/PBF/vs-calculateConstrains.js'
 import {calculateDisplacements} from './shaders/PBF/vs-calculateDisplacements.js'
@@ -28,7 +29,8 @@ let textureProgram,
     integrateVelocityProgram,
     calculateConstrainsProgram,
     calculateDisplacementsProgram,
-    calculateViscosityProgram;
+    calculateViscosityProgram,
+    medianProgram;
 
 
 //Textures used.
@@ -36,7 +38,8 @@ let positionTexture,
     velocityTexture,
     pbfTexture1,
     pbfTexture2,
-    voxelsTexture;
+    voxelsTexture,
+    medianTexture;
 
 
 //Buffers used.
@@ -44,13 +47,14 @@ let positionBuffer,
     velocityBuffer,
     pbfBuffer1,
     pbfBuffer2,
-    voxelsBuffer;
+    voxelsBuffer,
+    medianBuffer;
 
 
 let restDensity = 1000;
 let searchRadius = 1.8;
-let relaxParameter = .05;  //<<<------------------------------------------- this is very sensible
-let tensileConstant = 40;
+let relaxParameter = 0.1;  //<<<------------------------------------------- this is very sensible
+let tensileConstant = 4;
 let tensilePower = 4;
 let tensileDistanceMultiplier = 0.3;
 let viscosity = 0.1;
@@ -98,6 +102,11 @@ let init = (particlesPosition, particlesVelocity, _bucketSize, _voxelsTextureSiz
     predictPositionsProgram.velocityTexture                 = gl.getUniformLocation(predictPositionsProgram, "uTextureVelocity");
     predictPositionsProgram.deltaTime                       = gl.getUniformLocation(predictPositionsProgram, "uDeltaTime");
     predictPositionsProgram.acceleration                    = gl.getUniformLocation(predictPositionsProgram, "uAcceleration");
+
+
+    medianProgram                                           = webGL2.generateProgram(vsMedian, fsColor);
+    medianProgram.positionTexture                           = gl.getUniformLocation(medianProgram, "uTexPositions");
+    medianProgram.gridPartitioning                          = gl.getUniformLocation(medianProgram, "uBucketData");
 
 
     integrateVelocityProgram                                = webGL2.generateProgram(integrateVelocity, fsColor);
@@ -175,8 +184,17 @@ let updateFrame = (acceleration, deltaTime, constrainsIterations) => {
     gl.drawArrays(gl.POINTS, 0, totalParticles);
 
 
-    //Obtain the neighbors
-    searchNeighbords(pbfTexture1, voxelsBuffer, totalParticles, bucketSize);
+    //Obtain the median position for each voxel.
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, voxelsBuffer);
+    gl.viewport(0, 0, voxelsTextureSize, voxelsTextureSize);
+    gl.useProgram(medianProgram);
+    webGL2.bindTexture(medianProgram.positionTexture, pbfTexture1, 0);
+    gl.uniform3f(medianProgram.gridPartitioning, voxelsTexture.width, bucketSize, voxelsTexture.width / bucketSize);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.ONE, gl.ONE);
+    gl.drawArrays(gl.POINTS, 0, totalParticles);
+    gl.disable(gl.BLEND);
 
 
     //Solve the constrains
@@ -243,7 +261,7 @@ let updateFrame = (acceleration, deltaTime, constrainsIterations) => {
     gl.useProgram(calculateViscosityProgram);
     webGL2.bindTexture(calculateViscosityProgram.positionTexture, pbfTexture1, 0);
     webGL2.bindTexture(calculateViscosityProgram.velocityTexture, pbfTexture2, 1);
-    webGL2.bindTexture(calculateViscosityProgram.neighbors, voxelsTexture, 2);
+    webGL2.bindTexture(calculateViscosityProgram.neighbors, medianTexture, 2);
     gl.uniform3f(calculateViscosityProgram.bucketData, voxelsTexture.width, bucketSize, voxelsTexture.width / bucketSize);
     gl.uniform1f(calculateViscosityProgram.restDensity, restDensity);
     gl.uniform1f(calculateViscosityProgram.searchRadius, searchRadius);
@@ -272,5 +290,7 @@ export {
     totalParticles,
     positionTexture,
     velocityTexture,
-    voxelsTexture
+    voxelsTexture,
+    pbfTexture1,
+    pbfTexture2
 }

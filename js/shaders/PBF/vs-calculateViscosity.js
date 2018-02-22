@@ -68,21 +68,21 @@ void main() {
     vec3 gridPosition = floor(particlePosition);
     vec3 deltaVelocity = vec3(0.);
 
-    for(int i = 0; i < 27; i ++) {
-
-        vec3 neighborsVoxel = gridPosition + offsets[i];
-        vec2 voxelsIndex =  (neighborsVoxel.zy + uBucketData.y * vec2(mod(neighborsVoxel.x, uBucketData.z), floor(neighborsVoxel.x / uBucketData.z)) + vec2(0.5)) / uBucketData.x;
-        //float gridIndex = dot(neighborsVoxel, vec3(1., uBucketData.y, uBucketData.y * uBucketData.y));
-        //vec2 voxelsIndex = (vec2(mod(gridIndex, uBucketData.x), floor(gridIndex / uBucketData.x)) + vec2(0.5)) / uBucketData.x;
-        vec4 neighbors = texture(uNeighbors, voxelsIndex);
-
-        if(neighbors.r > 0.) addToSum(particlePosition, neighbors.r, particleVelocity, deltaVelocity);
-        if(neighbors.g > 0.) addToSum(particlePosition, neighbors.g, particleVelocity, deltaVelocity);
-        if(neighbors.b > 0.) addToSum(particlePosition, neighbors.b, particleVelocity, deltaVelocity);
-        if(neighbors.a > 0.) addToSum(particlePosition, neighbors.a, particleVelocity, deltaVelocity);
-    }
-
-    particleVelocity += (uKernelConstant / uRestDensity) * deltaVelocity;
+//    for(int i = 0; i < 27; i ++) {
+//
+//        vec3 neighborsVoxel = gridPosition + offsets[i];
+//        vec2 voxelsIndex =  (neighborsVoxel.zy + uBucketData.y * vec2(mod(neighborsVoxel.x, uBucketData.z), floor(neighborsVoxel.x / uBucketData.z)) + vec2(0.5)) / uBucketData.x;
+//        //float gridIndex = dot(neighborsVoxel, vec3(1., uBucketData.y, uBucketData.y * uBucketData.y));
+//        //vec2 voxelsIndex = (vec2(mod(gridIndex, uBucketData.x), floor(gridIndex / uBucketData.x)) + vec2(0.5)) / uBucketData.x;
+//        vec4 neighbors = texture(uNeighbors, voxelsIndex);
+//
+//        if(neighbors.r > 0.) addToSum(particlePosition, neighbors.r, particleVelocity, deltaVelocity);
+//        if(neighbors.g > 0.) addToSum(particlePosition, neighbors.g, particleVelocity, deltaVelocity);
+//        if(neighbors.b > 0.) addToSum(particlePosition, neighbors.b, particleVelocity, deltaVelocity);
+//        if(neighbors.a > 0.) addToSum(particlePosition, neighbors.a, particleVelocity, deltaVelocity);
+//    }
+//
+//    particleVelocity += (uKernelConstant / uRestDensity) * deltaVelocity;
 
     colorData = vec4(particleVelocity, 1.);
 }

@@ -31,9 +31,9 @@ let FOV = 30;
 let updateSimulation = true;
 let deltaTime = 0.01;
 let constrainsIterations = 1;
-let pbfResolution = 64;
-let voxelTextureSize = 512;
-let particlesTextureSize = 1000;
+let pbfResolution = 128;
+let voxelTextureSize = 2048;
+let particlesTextureSize = 512;
 let particlesPosition = [];
 let particlesVelocity = []
 let currentFrame = 0;
@@ -122,8 +122,8 @@ let render = () => {
         //Update the simulation
         PBF.updateFrame(acceleration, deltaTime, constrainsIterations);
 
-        //Generate the mesh from the simulation particles
-        Mesher.generateMesh(PBF.positionTexture, PBF.totalParticles, pbfResolution, particleSize, blurSteps, range, maxCells, fastNormals);
+//        //Generate the mesh from the simulation particles
+//        Mesher.generateMesh(PBF.positionTexture, PBF.totalParticles, pbfResolution, particleSize, blurSteps, range, maxCells, fastNormals);
 
         currentFrame++;
 
@@ -144,27 +144,27 @@ let render = () => {
     gl.disable(gl.DEPTH_TEST);
 
 
-//    //Render the potential
+    //Render the potential
 //    gl.viewport( canvas.height, 0, canvas.height, canvas.height);
 //    gl.useProgram(textureProgram);
-//    webGL2.bindTexture(textureProgram.texture, Mesher.t3DExpanded, 0);
+//    webGL2.bindTexture(textureProgram.texture, PBF.pbfTexture2, 0);
 //    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
 
-    let activeMCells = Math.ceil(maxCells * expandedTextureSize * expandedTextureSize / 100);
-
-
-    //Render the triangles
-    gl.useProgram(phongTrianglesProgram);
-    gl.viewport(canvas.height, 0, canvas.height, canvas.height);
-    webGL2.bindTexture(phongTrianglesProgram.textureTriangles, Mesher.tTriangles, 0);
-    webGL2.bindTexture(phongTrianglesProgram.textureNormals, Mesher.tNormals, 1);
-    gl.uniformMatrix4fv(phongTrianglesProgram.cameraMatrix, false, camera.cameraTransformMatrix);
-    gl.uniformMatrix4fv(phongTrianglesProgram.perspectiveMatrix, false, camera.perspectiveMatrix);
-    gl.uniform3f(phongTrianglesProgram.cameraPosition, camera.position[0], camera.position[1], camera.position[2]);
-    gl.enable(gl.DEPTH_TEST);
-    gl.drawArrays(gl.TRIANGLES, 0, 15 * activeMCells);
-    gl.disable(gl.DEPTH_TEST);
+//    let activeMCells = Math.ceil(maxCells * expandedTextureSize * expandedTextureSize / 100);
+//
+//
+//    //Render the triangles
+//    gl.useProgram(phongTrianglesProgram);
+//    gl.viewport(canvas.height, 0, canvas.height, canvas.height);
+//    webGL2.bindTexture(phongTrianglesProgram.textureTriangles, Mesher.tTriangles, 0);
+//    webGL2.bindTexture(phongTrianglesProgram.textureNormals, Mesher.tNormals, 1);
+//    gl.uniformMatrix4fv(phongTrianglesProgram.cameraMatrix, false, camera.cameraTransformMatrix);
+//    gl.uniformMatrix4fv(phongTrianglesProgram.perspectiveMatrix, false, camera.perspectiveMatrix);
+//    gl.uniform3f(phongTrianglesProgram.cameraPosition, camera.position[0], camera.position[1], camera.position[2]);
+//    gl.enable(gl.DEPTH_TEST);
+//    gl.drawArrays(gl.TRIANGLES, 0, 15 * activeMCells);
+//    gl.disable(gl.DEPTH_TEST);
 
 
 };
