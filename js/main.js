@@ -33,7 +33,7 @@ let deltaTime = 0.01;
 let constrainsIterations = 1;
 let pbfResolution = 64;
 let voxelTextureSize = 512;
-let particlesTextureSize = 1000;
+let particlesTextureSize;
 let particlesPosition = [];
 let particlesVelocity = []
 let currentFrame = 0;
@@ -76,6 +76,9 @@ for (let i = 0; i < pbfResolution; i++) {
     }
 }
 
+//Define the particles texture size based on the particles used.
+particlesTextureSize = Math.ceil(Math.sqrt(particlesPosition.length / 4));
+
 let renderParticlesProgram = webGL2.generateProgram(vsParticles, fsColor);
 renderParticlesProgram.positionTexture = gl.getUniformLocation(renderParticlesProgram, "uTexturePosition");
 renderParticlesProgram.cameraMatrix = gl.getUniformLocation(renderParticlesProgram, "uCameraMatrix");
@@ -99,7 +102,7 @@ phongTrianglesProgram.cameraPosition = gl.getUniformLocation(phongTrianglesProgr
 //=======================================================================================================
 
 //Initiate the position based fluids solver
-    PBF.init(particlesPosition, particlesVelocity, pbfResolution, voxelTextureSize, particlesTextureSize);
+PBF.init(particlesPosition, particlesVelocity, pbfResolution, voxelTextureSize, particlesTextureSize);
 particlesPosition = null;
 particlesVelocity = null;
 
