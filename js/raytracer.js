@@ -178,10 +178,12 @@ let render = () => {
     lightPos.y = r * Math.cos(lAlpha);
     lightPos.z = r * s * Math.sin(lBeta) + 0.5;
 
+    let upAcceleration = -10;
+    if(currentFrame > 100 && currentFrame % 100 < 2) upAcceleration = 1500;
     let acceleration = {
-        x: 3 * Math.sin(currentFrame * Math.PI / 180),
+        x: 8 * Math.sin(currentFrame * Math.PI / 180),
         y: -10,
-        z: 3 * Math.cos(currentFrame * Math.PI / 180)
+        z: 8 * Math.cos(currentFrame * Math.PI / 180)
     }
 
 
@@ -423,20 +425,20 @@ let render = () => {
         gl.viewport(0, 0, params.sceneSize, params.sceneSize);
 
 
-        //Rendering the floor with shadows and caustics
-        gl.useProgram(Programs.renderFloor);
-        webGL2.bindTexture(Programs.renderFloor.floorTexture, tFloorLines, 0);
-        webGL2.bindTexture(Programs.renderFloor.shadowTexture, tShadows, 1);
-        webGL2.bindTexture(Programs.renderFloor.radianceTexture, tRadiance2, 2);
-        gl.uniformMatrix4fv(Programs.renderFloor.cameraMatrix, false, camera.cameraTransformMatrix);
-        gl.uniformMatrix4fv(Programs.renderFloor.perspectiveMatrix, false, camera.perspectiveMatrix);
-        gl.uniform1f(Programs.renderFloor.backgroundColor, params.backgroundColor);
-        gl.uniform1f(Programs.renderFloor.scaler, 500);
-        gl.uniform1f(Programs.renderFloor.scaleShadow, params.floorScale);
-        gl.uniform1f(Programs.renderFloor.shadowIntensity, params.shadowIntensity);
-        gl.uniform4f(Programs.renderFloor.lightData, lightPos.x, lightPos.y, lightPos.z, params.lightIntensity);
-        gl.uniform3f(Programs.renderFloor.lightColor, params.lightColor[0] / 255, params.lightColor[1] / 255, params.lightColor[2] / 255);
-        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+        // //Rendering the floor with shadows and caustics
+        // gl.useProgram(Programs.renderFloor);
+        // webGL2.bindTexture(Programs.renderFloor.floorTexture, tFloorLines, 0);
+        // webGL2.bindTexture(Programs.renderFloor.shadowTexture, tShadows, 1);
+        // webGL2.bindTexture(Programs.renderFloor.radianceTexture, tRadiance2, 2);
+        // gl.uniformMatrix4fv(Programs.renderFloor.cameraMatrix, false, camera.cameraTransformMatrix);
+        // gl.uniformMatrix4fv(Programs.renderFloor.perspectiveMatrix, false, camera.perspectiveMatrix);
+        // gl.uniform1f(Programs.renderFloor.backgroundColor, params.backgroundColor);
+        // gl.uniform1f(Programs.renderFloor.scaler, 500);
+        // gl.uniform1f(Programs.renderFloor.scaleShadow, params.floorScale);
+        // gl.uniform1f(Programs.renderFloor.shadowIntensity, params.shadowIntensity);
+        // gl.uniform4f(Programs.renderFloor.lightData, lightPos.x, lightPos.y, lightPos.z, params.lightIntensity);
+        // gl.uniform3f(Programs.renderFloor.lightColor, params.lightColor[0] / 255, params.lightColor[1] / 255, params.lightColor[2] / 255);
+        // gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
 
         //Render the raytraced image on top of the plane.

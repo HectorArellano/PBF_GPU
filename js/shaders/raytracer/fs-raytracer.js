@@ -67,7 +67,7 @@ const fsRaytracer = `#version 300 es
 
      float specular = pow(max(dot(normalize(reflect(light, norm)), -eye), 0.), uShade.w);
      float diffuse = max(dot(light, norm), 0.);
-     return uShade.x * specular * vec3(1.) + uShade.y * diffuse * matColor * uLightColor + uShade.w * matColor;
+     return uShade.x * specular * vec3(1.) + uShade.y * diffuse * matColor * uLightColor + uBg * matColor;
 ;
  }
 
@@ -389,7 +389,7 @@ float sphereIntersect(vec3 rayOrigin, vec3 rayDirection, vec3 center, float radi
     vec3 lightDirection = normalize(lightVector);
 
     vec3 color = lightShade(screenColor, -eye, normal, lightDirection);
-    //color *= uLightData.a / pow(length(lightVector), 2.);
+    color *= uLightData.a / pow(length(lightVector), 2.);
 
     float fresnel = Fresnel(-eye, normal, 1., uRefract);
     float Kr = fresnel;
