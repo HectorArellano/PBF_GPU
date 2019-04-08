@@ -20,11 +20,13 @@ float h2;
 
 out vec4 colorData;
 
-void addToSum(in vec3 particlePosition, in float neighborIndex, in float lambdaPressure, inout vec3 deltaPosition) {
+void addToSum(in vec3 particlePosition, in float neighborIndex, in float lambdaPressure, inout vec3 deltaPosition, inout float nn) {
 
     vec2 index = vec2(mod(neighborIndex, texturePositionSize) + 0.5, floor(neighborIndex / texturePositionSize) + 0.5) / texturePositionSize;
     vec3 distance = particlePosition - texture(uTexturePosition, index).rgb;
     float r = length(distance);
+
+    nn++;
 
     if(r > 0. && r < uSearchRadius) {
 
@@ -83,6 +85,7 @@ void main() {
     vec3 gridPosition = floor(particlePosition);
     vec3 deltaPosition = vec3(0.);
 
+    float nn = 0.;
     for(int i = 0; i < 27; i ++) {
 
         vec3 neighborsVoxel = gridPosition + offsets[i];
@@ -91,10 +94,10 @@ void main() {
         //vec2 voxelsIndex = (vec2(mod(gridIndex, uBucketData.x), floor(gridIndex / uBucketData.x)) + vec2(0.5)) / uBucketData.x;
         vec4 neighbors = texture(uNeighbors, voxelsIndex);
 
-        if(neighbors.r > 0.) addToSum(particlePosition, neighbors.r, lambdaPressure, deltaPosition);
-        if(neighbors.g > 0.) addToSum(particlePosition, neighbors.g, lambdaPressure, deltaPosition);
-        if(neighbors.b > 0.) addToSum(particlePosition, neighbors.b, lambdaPressure, deltaPosition);
-        if(neighbors.a > 0.) addToSum(particlePosition, neighbors.a, lambdaPressure, deltaPosition);
+        if(neighbors.r > 0.) addToSum(particlePosition, neighbors.r, lambdaPressure, deltaPosition, nn);
+        if(neighbors.g > 0.) addToSum(particlePosition, neighbors.g, lambdaPressure, deltaPosition, nn);
+        if(neighbors.b > 0.) addToSum(particlePosition, neighbors.b, lambdaPressure, deltaPosition, nn);
+        if(neighbors.a > 0.) addToSum(particlePosition, neighbors.a, lambdaPressure, deltaPosition, nn);
     }
 
     vec3 endPosition = particlePosition + (uGradientKernelConstant / uRestDensity) * deltaPosition;
@@ -122,7 +125,7 @@ void main() {
     //
     // if(distance > 0.0) endPosition = contactPoint;
 
-    colorData = vec4(endPosition, texture(uConstrains, index).g + 1.);
+    colorData = vec4(endPosition, nn > 2. ? 1. : 0.);
 }
 
 `;

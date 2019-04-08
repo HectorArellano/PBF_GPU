@@ -16,6 +16,7 @@ in vec3 color;
 void main() {
 
     colorData = vec4(color, 1.);
+    //colorData = vec4( 1.0 );
 }
 
 `;

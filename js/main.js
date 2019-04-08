@@ -16,8 +16,8 @@ import {fsPhongTriangles}       from './shaders/utils/fs-phongTriangles.js';
 //=======================================================================================================
 
 let canvas = document.querySelector("#canvas3D");
-canvas.height = 700;
-canvas.width = canvas.height * 2;
+canvas.height = window.innerHeight;
+canvas.width = window.innerWidth;
 canvas.style.width = String(canvas.width) + "px";
 canvas.style.height = String(canvas.height) + "px";
 webGL2.setContext(canvas);
@@ -26,11 +26,12 @@ webGL2.setContext(canvas);
 let camera = new Camera(canvas);
 let cameraDistance = 2.5;
 let FOV = 30;
+let aspectRatio = window.innerWidth/window.innerHeight;
 
 //For the Position Based Fluids
 let updateSimulation = true;
-let deltaTime = 0.01;
-let constrainsIterations = 1;
+let deltaTime = 0.055;
+let constrainsIterations = 30;
 let pbfResolution = 64;
 let voxelTextureSize = 512;
 let particlesTextureSize;
@@ -51,11 +52,11 @@ let depthLevels = 64;
 
 let compactTextureSize = 1500;
 
-let particleSize = 3.;
-let blurSteps = 10;
+let particleSize = 2.;
+let blurSteps = 4;
 let range = 0.26;
 let maxCells = 3.5;
-let fastNormals = false;
+let fastNormals = true;
 let radius = pbfResolution * 0.39;
 
 //Generate the position and velocity
@@ -113,7 +114,7 @@ let render = () => {
 
     requestAnimationFrame(render);
 
-    camera.updateCamera(FOV, 1, cameraDistance);
+    camera.updateCamera(FOV, aspectRatio, cameraDistance);
     let acceleration = {
         x: 0 * Math.sin(currentFrame * Math.PI / 180),
         y: -10,
@@ -135,7 +136,7 @@ let render = () => {
 
     //Render particles
     gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
-    gl.viewport(0, 0, canvas.height, canvas.height);
+    gl.viewport(0, 0, canvas.width, canvas.height);
     gl.useProgram(renderParticlesProgram);
     webGL2.bindTexture(renderParticlesProgram.positionTexture, PBF.positionTexture, 0);
     gl.uniform1f(renderParticlesProgram.scale, pbfResolution);
@@ -156,10 +157,9 @@ let render = () => {
 
     let activeMCells = Math.ceil(maxCells * expandedTextureSize * expandedTextureSize / 100);
 
-
     //Render the triangles
     gl.useProgram(phongTrianglesProgram);
-    gl.viewport(canvas.height, 0, canvas.height, canvas.height);
+    gl.viewport(0, 0, canvas.width, canvas.height);
     webGL2.bindTexture(phongTrianglesProgram.textureTriangles, Mesher.tTriangles, 0);
     webGL2.bindTexture(phongTrianglesProgram.textureNormals, Mesher.tNormals, 1);
     gl.uniformMatrix4fv(phongTrianglesProgram.cameraMatrix, false, camera.cameraTransformMatrix);

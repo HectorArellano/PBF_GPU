@@ -19,8 +19,10 @@ void main() {
     gl_Position = vec4(2. * index - vec2(1.), 0., 1.);
     gl_PointSize = 1.;
 
-    colorData = vec4((texture(uTexturePosition, index).rgb - texture(uTexturePositionOld, index).rgb) / max(uDeltaTime, EPSILON), 1.);
+    vec4 ddd = texture(uTexturePosition, index);
+    colorData = vec4((ddd.rgb - texture(uTexturePositionOld, index).rgb) / max(uDeltaTime, EPSILON), 1.);
 
+    if(ddd.a == 0.) colorData.rgb *= 0.9;
 }
 
 `;

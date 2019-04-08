@@ -49,7 +49,7 @@ let positionBuffer,
 
 let restDensity = 1000;
 let searchRadius = 1.8;
-let relaxParameter = .05;  //<<<------------------------------------------- this is very sensible
+let relaxParameter = .01;  //<<<------------------------------------------- this is very sensible
 let tensileConstant = 40;
 let tensilePower = 4;
 let tensileDistanceMultiplier = 0.3;
