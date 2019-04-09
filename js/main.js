@@ -25,6 +25,7 @@ webGL2.setContext(canvas);
 
 let camera = new Camera(canvas);
 let cameraDistance = 2.5;
+let cameraFinalRadius = 2.5;
 let FOV = 30;
 let aspectRatio = window.innerWidth/window.innerHeight;
 
@@ -114,6 +115,7 @@ let render = () => {
 
     requestAnimationFrame(render);
 
+    cameraDistance += (cameraFinalRadius-cameraDistance) / 5;
     camera.updateCamera(FOV, aspectRatio, cameraDistance);
     let acceleration = {
         x: 0 * Math.sin(currentFrame * Math.PI / 180),
@@ -135,29 +137,31 @@ let render = () => {
 
 
     //Render particles
-    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
-    gl.viewport(0, 0, canvas.width, canvas.height);
-    gl.useProgram(renderParticlesProgram);
-    webGL2.bindTexture(renderParticlesProgram.positionTexture, PBF.positionTexture, 0);
-    gl.uniform1f(renderParticlesProgram.scale, pbfResolution);
-    gl.uniformMatrix4fv(renderParticlesProgram.cameraMatrix, false, camera.cameraTransformMatrix);
-    gl.uniformMatrix4fv(renderParticlesProgram.perspectiveMatrix, false, camera.perspectiveMatrix);
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-    gl.enable(gl.DEPTH_TEST);
-    gl.drawArrays(gl.POINTS, 0, PBF.totalParticles);
-    gl.disable(gl.DEPTH_TEST);
+    
+    // gl.viewport(0, 0, canvas.width, canvas.height);
+    // gl.useProgram(renderParticlesProgram);
+    // webGL2.bindTexture(renderParticlesProgram.positionTexture, PBF.positionTexture, 0);
+    // gl.uniform1f(renderParticlesProgram.scale, pbfResolution);
+    // gl.uniformMatrix4fv(renderParticlesProgram.cameraMatrix, false, camera.cameraTransformMatrix);
+    // gl.uniformMatrix4fv(renderParticlesProgram.perspectiveMatrix, false, camera.perspectiveMatrix);
+    // gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    // gl.enable(gl.DEPTH_TEST);
+    // gl.drawArrays(gl.POINTS, 0, PBF.totalParticles);
+    // gl.disable(gl.DEPTH_TEST);
 
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
 
 //    //Render the potential
-//    gl.viewport( canvas.height, 0, canvas.height, canvas.height);
-//    gl.useProgram(textureProgram);
-//    webGL2.bindTexture(textureProgram.texture, Mesher.t3DExpanded, 0);
-//    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+   gl.viewport( canvas.height, 0, canvas.height, canvas.height);
+   gl.useProgram(textureProgram);
+   webGL2.bindTexture(textureProgram.texture, Mesher.t3DExpanded, 0);
+   gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
 
     let activeMCells = Math.ceil(maxCells * expandedTextureSize * expandedTextureSize / 100);
 
     //Render the triangles
+    
     gl.useProgram(phongTrianglesProgram);
     gl.viewport(0, 0, canvas.width, canvas.height);
     webGL2.bindTexture(phongTrianglesProgram.textureTriangles, Mesher.tTriangles, 0);
@@ -172,8 +176,26 @@ let render = () => {
 
 };
 
-document.body.addEventListener("keypress", () => {
-    updateSimulation = !updateSimulation;
-})
+function onMouseWheel(e) {
+    e.preventDefault();
+    let delta = e.detail ? e.detail * -120 : e.wheelDelta;
+    cameraFinalRadius -= delta * 0.0001;
+}
 
+let mouseWheelHandler;
+function events(){
+    let domElement =  window;
+    let mouseWheelEvent = (/Firefox/i.test(navigator.userAgent))? "DOMMouseScroll" : "mousewheel";
+
+    mouseWheelHandler = onMouseWheel.bind( this );
+  
+    document.addEventListener( mouseWheelEvent, mouseWheelHandler );
+    document.body.addEventListener("keypress", () => {
+        updateSimulation = !updateSimulation;
+    })
+}
+
+
+
+events();
 render();
