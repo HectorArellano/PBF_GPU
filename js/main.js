@@ -7,8 +7,8 @@ import {vsParticles}            from './shaders/utils/vs-renderParticles.js'
 import {fsColor}                from './shaders/utils/fs-simpleColor.js';
 import {fsTextureColor}         from './shaders/utils/fs-simpleTexture.js';
 import {vsQuad}                 from './shaders/utils/vs-quad.js';
-import {vsPhongTriangles}       from './shaders/utils/vs-phongTriangles.js';
-import {fsPhongTriangles}       from './shaders/utils/fs-phongTriangles.js';
+import {vsPBR}                  from './shaders/utils/vs-pbr.js';
+import {fsPBR}                  from './shaders/utils/fs-pbr.js';
 
 
 //=======================================================================================================
@@ -49,7 +49,7 @@ let compressedBuckets = 8;
 
 let depthLevels = 64;
 
-let compactTextureSize = 1500;
+let compactTextureSize = 2500;
 
 let particleSize = 3.;
 let blurSteps = 10;
@@ -89,12 +89,16 @@ let textureProgram = webGL2.generateProgram(vsQuad, fsTextureColor);
 textureProgram.texture = gl.getUniformLocation(textureProgram, "uTexture");
 textureProgram.forceAlpha = gl.getUniformLocation(textureProgram, "uForceAlpha");
 
-let phongTrianglesProgram = webGL2.generateProgram(vsPhongTriangles, fsPhongTriangles);
-phongTrianglesProgram.cameraMatrix = gl.getUniformLocation(phongTrianglesProgram, "uCameraMatrix");
-phongTrianglesProgram.perspectiveMatrix = gl.getUniformLocation(phongTrianglesProgram, "uPMatrix");
-phongTrianglesProgram.textureTriangles = gl.getUniformLocation(phongTrianglesProgram, "uTT");
-phongTrianglesProgram.textureNormals = gl.getUniformLocation(phongTrianglesProgram, "uTN");
-phongTrianglesProgram.cameraPosition = gl.getUniformLocation(phongTrianglesProgram, "uEye");
+let pbrProgram = webGL2.generateProgram(vsPBR, fsPBR);
+pbrProgram.cameraMatrix = gl.getUniformLocation(pbrProgram, "uCameraMatrix");
+pbrProgram.perspectiveMatrix = gl.getUniformLocation(pbrProgram, "uPMatrix");
+pbrProgram.textureTriangles = gl.getUniformLocation(pbrProgram, "uTT");
+pbrProgram.textureNormals = gl.getUniformLocation(pbrProgram, "uTN");
+pbrProgram.cameraPosition = gl.getUniformLocation(pbrProgram, "camPos");
+pbrProgram.albedo = gl.getUniformLocation(pbrProgram, "albedo");
+pbrProgram.roughness = gl.getUniformLocation(pbrProgram, "roughness");
+pbrProgram.metallic = gl.getUniformLocation(pbrProgram, "metallic");
+pbrProgram.ao = gl.getUniformLocation(pbrProgram, "ao");
 
 
 //=======================================================================================================
@@ -158,13 +162,21 @@ let render = () => {
 
 
     //Render the triangles
-    gl.useProgram(phongTrianglesProgram);
+    gl.useProgram(pbrProgram);
     gl.viewport(canvas.height, 0, canvas.height, canvas.height);
-    webGL2.bindTexture(phongTrianglesProgram.textureTriangles, Mesher.tTriangles, 0);
-    webGL2.bindTexture(phongTrianglesProgram.textureNormals, Mesher.tNormals, 1);
-    gl.uniformMatrix4fv(phongTrianglesProgram.cameraMatrix, false, camera.cameraTransformMatrix);
-    gl.uniformMatrix4fv(phongTrianglesProgram.perspectiveMatrix, false, camera.perspectiveMatrix);
-    gl.uniform3f(phongTrianglesProgram.cameraPosition, camera.position[0], camera.position[1], camera.position[2]);
+
+    webGL2.bindTexture(pbrProgram.textureTriangles, Mesher.tTriangles, 0);
+    webGL2.bindTexture(pbrProgram.textureNormals, Mesher.tNormals, 1);
+    gl.uniformMatrix4fv(pbrProgram.cameraMatrix, false, camera.cameraTransformMatrix);
+    gl.uniformMatrix4fv(pbrProgram.perspectiveMatrix, false, camera.perspectiveMatrix);
+
+    gl.uniform3f(pbrProgram.cameraPosition, camera.position[0], camera.position[1], camera.position[2]);
+    gl.uniform3f(pbrProgram.albedo, 1, 0, 0);
+    gl.uniform1f(pbrProgram.metallic, 0.);
+    gl.uniform1f(pbrProgram.roughness, 1);
+    gl.uniform1f(pbrProgram.ao, 0);
+
+
     gl.enable(gl.DEPTH_TEST);
     gl.drawArrays(gl.TRIANGLES, 0, 15 * activeMCells);
     gl.disable(gl.DEPTH_TEST);
