@@ -33,7 +33,7 @@ let aspectRatio = window.innerWidth/window.innerHeight;
 let updateSimulation = true;
 let deltaTime = 0.055;
 let constrainsIterations = 30;
-let pbfResolution = 64;
+let pbfResolution = 40;
 let voxelTextureSize = 512;
 let particlesTextureSize;
 let particlesPosition = [];
@@ -55,7 +55,7 @@ let compactTextureSize = 1500;
 
 let particleSize = 2.;
 let blurSteps = 4;
-let range = 0.26;
+let range = 0.21;
 let maxCells = 3.5;
 let fastNormals = true;
 let radius = pbfResolution * 0.39;
@@ -152,10 +152,10 @@ let render = () => {
     gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
 
 //    //Render the potential
-   gl.viewport( canvas.height, 0, canvas.height, canvas.height);
-   gl.useProgram(textureProgram);
-   webGL2.bindTexture(textureProgram.texture, Mesher.t3DExpanded, 0);
-   gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+//    gl.viewport( canvas.height, 0, canvas.height, canvas.height);
+//    gl.useProgram(textureProgram);
+//    webGL2.bindTexture(textureProgram.texture, Mesher.t3DExpanded, 0);
+//    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
 
     let activeMCells = Math.ceil(maxCells * expandedTextureSize * expandedTextureSize / 100);
